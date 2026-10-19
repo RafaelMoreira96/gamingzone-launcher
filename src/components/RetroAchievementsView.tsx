@@ -15,6 +15,8 @@ import {
   ChevronRight,
   Star,
   Calendar,
+  X,
+  ArrowUpDown,
 } from "lucide-react";
 import { Game, RaGameProgress, RaUserProfile, RaUserGame } from "../types";
 import { api, formatRaDate } from "../services/api";
@@ -56,6 +58,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
   const [accountSearchQuery, setAccountSearchQuery] = useState("");
   const [accountConsoleFilter, setAccountConsoleFilter] = useState<string>("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "beaten" | "mastered" | "in_progress">("all");
+  const [accountSortBy, setAccountSortBy] = useState<"recent" | "progress_desc" | "achievements_desc" | "name_asc">("recent");
 
   // Filters & Search for Achievements within a Game
   const [filterType, setFilterType] = useState<"all" | "unlocked" | "locked">("all");
@@ -183,13 +186,17 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
     setActiveTab("game_details");
   };
 
-  // Distinct console names from account games
-  const accountConsoles = useMemo(() => {
-    const set = new Set<string>();
+  // Distinct console names from account games with counts (sorted by most games first)
+  const accountConsolesWithCount = useMemo(() => {
+    const map = new Map<string, number>();
     accountGames.forEach((g) => {
-      if (g.console_name) set.add(g.console_name);
+      if (g.console_name) {
+        map.set(g.console_name, (map.get(g.console_name) || 0) + 1);
+      }
     });
-    return Array.from(set);
+    return Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [accountGames]);
 
   // Pre-calculated counts
@@ -206,9 +213,9 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
     [accountGames]
   );
 
-  // Filtered account games
+  // Filtered & Sorted account games
   const filteredAccountGames = useMemo(() => {
-    return accountGames.filter((g) => {
+    let list = accountGames.filter((g) => {
       if (accountConsoleFilter !== "all" && g.console_name !== accountConsoleFilter) return false;
       const isMastered = g.is_mastered || (g.num_possible_achievements > 0 && g.num_achieved >= g.num_possible_achievements);
       const isBeaten = g.is_beaten || isMastered;
@@ -225,7 +232,23 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
       }
       return true;
     });
-  }, [accountGames, accountConsoleFilter, accountStatusFilter, accountSearchQuery]);
+
+    switch (accountSortBy) {
+      case "progress_desc":
+        return list.sort((a, b) => {
+          const pA = a.num_possible_achievements > 0 ? a.num_achieved / a.num_possible_achievements : 0;
+          const pB = b.num_possible_achievements > 0 ? b.num_achieved / b.num_possible_achievements : 0;
+          return pB - pA;
+        });
+      case "achievements_desc":
+        return list.sort((a, b) => b.num_achieved - a.num_achieved);
+      case "name_asc":
+        return list.sort((a, b) => a.title.localeCompare(b.title));
+      case "recent":
+      default:
+        return list;
+    }
+  }, [accountGames, accountConsoleFilter, accountStatusFilter, accountSearchQuery, accountSortBy]);
 
   // Filtered & Sorted Achievements for Selected Game
   const filteredAchievements = useMemo(() => {
@@ -576,92 +599,311 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
       {/* TAB 1: CONQUISTAS (JOGOS DA CONTA) */}
       {activeTab === "account_games" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* FILTER AND SEARCH BAR FOR ACCOUNT GAMES */}
+          {/* FILTER AND SEARCH TOOLBAR FOR ACCOUNT GAMES */}
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "12px",
               background: "var(--bg-card)",
               border: "1px solid var(--border-subtle)",
-              padding: "12px 18px",
-              borderRadius: "var(--radius-md)",
+              borderRadius: "var(--radius-lg)",
+              padding: "16px 20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
             }}
           >
-            {/* SEARCH */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, minWidth: "260px" }}>
-              <Search size={16} color="var(--text-muted)" />
-              <input
-                type="text"
-                placeholder="Buscar jogo na sua conta RetroAchievements..."
-                value={accountSearchQuery}
-                onChange={(e) => setAccountSearchQuery(e.target.value)}
+            {/* ROW 1: SEARCH BAR + CONSOLE SELECTOR + SORT + CLEAR */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              {/* SEARCH INPUT */}
+              <div
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#fff",
-                  fontSize: "0.88rem",
-                  outline: "none",
-                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  flex: 1,
+                  minWidth: "260px",
+                  background: "rgba(0, 0, 0, 0.35)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "8px 14px",
                 }}
-              />
-            </div>
-
-            {/* CONSOLE FILTER */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className={`details-filter-btn ${accountConsoleFilter === "all" ? "active" : ""}`}
-                onClick={() => setAccountConsoleFilter("all")}
               >
-                Todos os Consoles
-              </button>
-              {accountConsoles.map((cons) => (
-                <button
-                  key={cons}
-                  type="button"
-                  className={`details-filter-btn ${accountConsoleFilter === cons ? "active" : ""}`}
-                  onClick={() => setAccountConsoleFilter(cons)}
+                <Search size={16} color="var(--text-muted)" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome do jogo ou console..."
+                  value={accountSearchQuery}
+                  onChange={(e) => setAccountSearchQuery(e.target.value)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#fff",
+                    fontSize: "0.88rem",
+                    outline: "none",
+                    width: "100%",
+                  }}
+                />
+                {accountSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setAccountSearchQuery("")}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                      padding: 0,
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    title="Limpar busca"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+
+              {/* CONSOLE SELECTOR (Dropdown limpo e organizado) */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "rgba(0, 0, 0, 0.35)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "6px 12px",
+                  minWidth: "220px",
+                }}
+              >
+                <Gamepad2 size={16} color="#FF9900" style={{ flexShrink: 0 }} />
+                <select
+                  className="form-input"
+                  value={accountConsoleFilter}
+                  onChange={(e) => setAccountConsoleFilter(e.target.value)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#fff",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    padding: "2px 0",
+                    width: "100%",
+                    outline: "none",
+                  }}
                 >
-                  {cons}
+                  <option value="all" style={{ background: "#0d131f", color: "#fff" }}>
+                    Todos os Consoles ({accountGames.length})
+                  </option>
+                  {accountConsolesWithCount.map((c) => (
+                    <option key={c.name} value={c.name} style={{ background: "#0d131f", color: "#fff" }}>
+                      {c.name} ({c.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* SORT SELECTOR */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "rgba(0, 0, 0, 0.35)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "6px 12px",
+                }}
+              >
+                <ArrowUpDown size={15} color="var(--accent-cyan)" style={{ flexShrink: 0 }} />
+                <select
+                  className="form-input"
+                  value={accountSortBy}
+                  onChange={(e) => setAccountSortBy(e.target.value as any)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#fff",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    padding: "2px 0",
+                    outline: "none",
+                  }}
+                >
+                  <option value="recent" style={{ background: "#0d131f", color: "#fff" }}>Recentes / Padrão</option>
+                  <option value="progress_desc" style={{ background: "#0d131f", color: "#fff" }}>Maior Progresso (%)</option>
+                  <option value="achievements_desc" style={{ background: "#0d131f", color: "#fff" }}>Mais Conquistas</option>
+                  <option value="name_asc" style={{ background: "#0d131f", color: "#fff" }}>Nome (A - Z)</option>
+                </select>
+              </div>
+
+              {/* CLEAR FILTERS BUTTON (se filtros ativos) */}
+              {(accountSearchQuery || accountConsoleFilter !== "all" || accountStatusFilter !== "all" || accountSortBy !== "recent") && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setAccountSearchQuery("");
+                    setAccountConsoleFilter("all");
+                    setAccountStatusFilter("all");
+                    setAccountSortBy("recent");
+                  }}
+                  style={{
+                    fontSize: "0.78rem",
+                    padding: "7px 12px",
+                    color: "var(--accent-red)",
+                    borderColor: "rgba(255, 51, 75, 0.35)",
+                    background: "rgba(255, 51, 75, 0.08)",
+                  }}
+                  title="Limpar todos os filtros"
+                >
+                  <X size={13} style={{ marginRight: "4px" }} />
+                  <span>Limpar</span>
                 </button>
-              ))}
+              )}
             </div>
 
-            {/* STATUS FILTER */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <button
-                type="button"
-                className={`details-filter-btn ${accountStatusFilter === "all" ? "active" : ""}`}
-                onClick={() => setAccountStatusFilter("all")}
-              >
-                Todos ({accountGames.length})
-              </button>
-              <button
-                type="button"
-                className={`details-filter-btn ${accountStatusFilter === "beaten" ? "active" : ""}`}
-                onClick={() => setAccountStatusFilter("beaten")}
-                style={{ color: accountStatusFilter === "beaten" ? "#4ade80" : undefined }}
-              >
-                🏆 Zerados ({beatenGamesCount})
-              </button>
-              <button
-                type="button"
-                className={`details-filter-btn ${accountStatusFilter === "mastered" ? "active" : ""}`}
-                onClick={() => setAccountStatusFilter("mastered")}
-                style={{ color: accountStatusFilter === "mastered" ? "#FFD54F" : undefined }}
-              >
-                ⭐ 100% Mastered ({masteredGamesCount})
-              </button>
-              <button
-                type="button"
-                className={`details-filter-btn ${accountStatusFilter === "in_progress" ? "active" : ""}`}
-                onClick={() => setAccountStatusFilter("in_progress")}
-              >
-                Em Progresso ({inProgressGamesCount})
-              </button>
+            {/* ROW 2: STATUS FILTER BUTTONS + SUMMARY COUNT */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+                flexWrap: "wrap",
+                borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                paddingTop: "12px",
+              }}
+            >
+              {/* SEGMENTED STATUS PILLS */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className={`details-filter-btn ${accountStatusFilter === "all" ? "active" : ""}`}
+                  onClick={() => setAccountStatusFilter("all")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: 700,
+                  }}
+                >
+                  <span>Todos</span>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      background: accountStatusFilter === "all" ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.08)",
+                      padding: "1px 6px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {accountGames.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`details-filter-btn ${accountStatusFilter === "beaten" ? "active" : ""}`}
+                  onClick={() => setAccountStatusFilter("beaten")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: 700,
+                    borderColor: accountStatusFilter === "beaten" ? "#4ade80" : undefined,
+                    color: accountStatusFilter === "beaten" ? "#4ade80" : undefined,
+                    background: accountStatusFilter === "beaten" ? "rgba(74, 222, 128, 0.15)" : undefined,
+                  }}
+                >
+                  <Trophy size={13} color={accountStatusFilter === "beaten" ? "#4ade80" : "var(--text-muted)"} />
+                  <span>Zerados</span>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      background: accountStatusFilter === "beaten" ? "rgba(74, 222, 128, 0.25)" : "rgba(255, 255, 255, 0.08)",
+                      color: accountStatusFilter === "beaten" ? "#4ade80" : undefined,
+                      padding: "1px 6px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {beatenGamesCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`details-filter-btn ${accountStatusFilter === "mastered" ? "active" : ""}`}
+                  onClick={() => setAccountStatusFilter("mastered")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: 700,
+                    borderColor: accountStatusFilter === "mastered" ? "#FFD54F" : undefined,
+                    color: accountStatusFilter === "mastered" ? "#FFD54F" : undefined,
+                    background: accountStatusFilter === "mastered" ? "rgba(255, 213, 79, 0.15)" : undefined,
+                  }}
+                >
+                  <Star size={13} color={accountStatusFilter === "mastered" ? "#FFD54F" : "var(--text-muted)"} />
+                  <span>100% Mastered</span>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      background: accountStatusFilter === "mastered" ? "rgba(255, 213, 79, 0.25)" : "rgba(255, 255, 255, 0.08)",
+                      color: accountStatusFilter === "mastered" ? "#FFD54F" : undefined,
+                      padding: "1px 6px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {masteredGamesCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`details-filter-btn ${accountStatusFilter === "in_progress" ? "active" : ""}`}
+                  onClick={() => setAccountStatusFilter("in_progress")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: 700,
+                  }}
+                >
+                  <span>Em Progresso</span>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      background: accountStatusFilter === "in_progress" ? "rgba(0, 229, 255, 0.2)" : "rgba(255, 255, 255, 0.08)",
+                      color: accountStatusFilter === "in_progress" ? "var(--accent-cyan)" : undefined,
+                      padding: "1px 6px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {inProgressGamesCount}
+                  </span>
+                </button>
+              </div>
+
+              {/* RESULT COUNT INDICATOR */}
+              <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                Mostrando <strong style={{ color: "#fff" }}>{filteredAccountGames.length}</strong> de{" "}
+                <strong style={{ color: "var(--text-secondary)" }}>{accountGames.length}</strong> jogos
+                {accountConsoleFilter !== "all" && (
+                  <span style={{ color: "#FFB84D", marginLeft: "6px" }}>
+                    • {accountConsoleFilter}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
