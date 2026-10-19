@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   X,
   Play,
@@ -26,6 +26,9 @@ import {
   RotateCw,
   Palette,
   Image as ImageIcon,
+  History,
+  Timer,
+  Flame,
 } from "lucide-react";
 import { Game, GameDetails, RaGameProgress, SaveBackup, PlayStatusType } from "../types";
 import { api, formatPlaytime, formatImageUrl } from "../services/api";
@@ -150,6 +153,57 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   const currentGame = details?.game || game;
   const sessions = details?.sessions || [];
   const platformColor = currentGame.platform_brand_color || "#00E5FF";
+
+  const maxSessionSeconds = useMemo(() => {
+    if (!sessions || sessions.length === 0) return 60;
+    return Math.max(...sessions.map((s) => s.duration_seconds || 0), 60);
+  }, [sessions]);
+
+  const totalSessionsDuration = useMemo(() => {
+    if (!sessions || sessions.length === 0) return 0;
+    return sessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
+  }, [sessions]);
+
+  const formatSessionDate = (isoString: string) => {
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return { relative: isoString, time: "", fullDate: isoString };
+
+      const today = new Date();
+      const isToday =
+        d.getDate() === today.getDate() &&
+        d.getMonth() === today.getMonth() &&
+        d.getFullYear() === today.getFullYear();
+
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const isYesterday =
+        d.getDate() === yesterday.getDate() &&
+        d.getMonth() === yesterday.getMonth() &&
+        d.getFullYear() === yesterday.getFullYear();
+
+      const timeStr = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const dateStr = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+      if (isToday) return { relative: "Hoje", time: timeStr, fullDate: dateStr };
+      if (isYesterday) return { relative: "Ontem", time: timeStr, fullDate: dateStr };
+
+      return { relative: dateStr, time: timeStr, fullDate: dateStr };
+    } catch {
+      return { relative: isoString, time: "", fullDate: isoString };
+    }
+  };
+
+  const formatSessionDuration = (seconds: number) => {
+    if (!seconds || seconds <= 0) return "< 1 minuto";
+    if (seconds < 60) return `${seconds}s jogados`;
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (hrs > 0) {
+      return `${hrs}h ${mins.toString().padStart(2, "0")}m jogadas`;
+    }
+    return `${mins}m jogados`;
+  };
 
   const handleDelete = async () => {
     try {
@@ -610,49 +664,154 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 </div>
               </div>
 
-              {/* SESSIONS HISTORY LIST */}
-              <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "20px 0 12px 0" }}>
-                Histórico de Execuções ({sessions.length})
-              </h3>
+              {/* SESSIONS TIMELINE (LINHA DO TEMPO DE EXECUÇÕES) */}
+              <div className="sessions-timeline-container">
+                <div className="sessions-timeline-header">
+                  <div className="sessions-timeline-title">
+                    <div className="timeline-title-icon-box">
+                      <History size={17} />
+                    </div>
+                    <div>
+                      <h3 className="timeline-title-text">
+                        Linha do Tempo de Execuções
+                      </h3>
+                      <span className="timeline-title-sub">
+                        {sessions.length} {sessions.length === 1 ? "sessão registrada" : "sessões registradas"}
+                      </span>
+                    </div>
+                  </div>
 
-              {sessions.length === 0 ? (
-                <div
-                  style={{
-                    padding: "20px",
-                    background: "var(--bg-card)",
-                    borderRadius: "var(--radius-md)",
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    fontSize: "0.85rem",
-                    border: "1px dashed var(--border-subtle)",
-                  }}
-                >
-                  Nenhuma sessão gravada ainda. Inicie o jogo para começar a contabilizar horas!
-                </div>
-              ) : (
-                <div className="sessions-list">
-                  {sessions.map((sess) => (
-                    <div key={sess.id} className="session-item">
-                      <div className="session-item-left">
-                        <Calendar size={14} color="var(--accent-cyan)" />
-                        <span>
-                          {new Date(sess.started_at).toLocaleString("pt-BR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <div className="session-item-right">
-                        <Clock size={14} color="var(--text-muted)" />
-                        <span>{formatPlaytime(sess.duration_seconds)}</span>
+                  {sessions.length > 0 && (
+                    <div className="timeline-stats-pills">
+                      <div className="timeline-stat-pill" title="Tempo total acumulado de todas as sessões gravadas">
+                        <Clock size={12} color="var(--accent-cyan)" />
+                        <span>Total: <strong>{formatPlaytime(totalSessionsDuration)}</strong></span>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
+
+                {sessions.length === 0 ? (
+                  <div className="timeline-empty-state">
+                    <div className="timeline-empty-icon">
+                      <Clock size={28} />
+                    </div>
+                    <p className="timeline-empty-title">Nenhuma execução registrada ainda</p>
+                    <span className="timeline-empty-desc">
+                      Inicie uma partida deste jogo para que cada sessão seja gravada na sua linha do tempo com data, horário e duração detalhada!
+                    </span>
+                  </div>
+                ) : (
+                  <div className="timeline-track">
+                    {sessions.map((sess, idx) => {
+                      const isLatest = idx === 0;
+                      const dur = sess.duration_seconds || 0;
+                      const isLongSession = dur >= 3600; // >= 1 hour
+                      const isMediumSession = dur >= 1200; // >= 20 mins
+                      const isBriefSession = dur < 60; // < 1 min
+                      const dateInfo = formatSessionDate(sess.started_at);
+                      const durationFormatted = formatSessionDuration(dur);
+                      const progressPercent = Math.min(100, Math.max(12, Math.round((dur / maxSessionSeconds) * 100)));
+
+                      return (
+                        <div
+                          key={sess.id || idx}
+                          className={`timeline-entry ${isLatest ? "is-latest" : ""}`}
+                        >
+                          {/* Timeline Marker Node on Spine */}
+                          <div className="timeline-node-wrapper">
+                            <div
+                              className={`timeline-node-dot ${
+                                isLatest
+                                  ? "dot-latest"
+                                  : isLongSession
+                                  ? "dot-epic"
+                                  : isMediumSession
+                                  ? "dot-medium"
+                                  : "dot-normal"
+                              }`}
+                            >
+                              {isLatest && <span className="pulse-ring" />}
+                            </div>
+                            {idx < sessions.length - 1 && <div className="timeline-node-line" />}
+                          </div>
+
+                          {/* Timeline Content Card */}
+                          <div className="timeline-card">
+                            <div className="timeline-card-header">
+                              <div className="timeline-date-box">
+                                <div className="timeline-date-day">
+                                  <Calendar size={13} color="var(--accent-cyan)" />
+                                  <span>{dateInfo.relative}</span>
+                                </div>
+                                {dateInfo.time && (
+                                  <span className="timeline-date-time">
+                                    às {dateInfo.time}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="timeline-badge-group">
+                                {isLatest && (
+                                  <span className="timeline-latest-tag">
+                                    <span className="latest-dot" />
+                                    Última Sessão
+                                  </span>
+                                )}
+                                <span
+                                  className={`timeline-duration-badge ${
+                                    isLongSession ? "badge-epic" : isBriefSession ? "badge-brief" : "badge-normal"
+                                  }`}
+                                >
+                                  <Timer size={13} />
+                                  <span>{durationFormatted}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Progress intensity bar showing length relative to longest session */}
+                            {!isBriefSession && (
+                              <div className="timeline-intensity-track" title={`Duração de ${durationFormatted}`}>
+                                <div
+                                  className="timeline-intensity-fill"
+                                  style={{
+                                    width: `${progressPercent}%`,
+                                    background: isLongSession
+                                      ? "linear-gradient(90deg, var(--accent-cyan) 0%, #FFB800 100%)"
+                                      : "linear-gradient(90deg, rgba(0, 229, 255, 0.4) 0%, var(--accent-cyan) 100%)",
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            {/* Sub-details (Interval and End Time) */}
+                            <div className="timeline-card-footer">
+                              <span className="timeline-detail-text">
+                                Início: {dateInfo.fullDate} {dateInfo.time ? `às ${dateInfo.time}` : ""}
+                                {sess.ended_at && (
+                                  <>
+                                    {" • "}Término:{" "}
+                                    {new Date(sess.ended_at).toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </>
+                                )}
+                              </span>
+                              {isLongSession && (
+                                <span className="timeline-highlight-note">
+                                  <Flame size={12} color="#FFB800" />
+                                  <span>Sessão Épica (1h+)</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* RIGHT COLUMN: TECHNICAL METADATA & ACTIONS */}
