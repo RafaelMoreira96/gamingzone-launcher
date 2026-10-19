@@ -7,9 +7,6 @@ import {
   X,
   Trophy,
   Star,
-  Settings,
-  FolderUp,
-  Plus,
   Search,
   TrendingUp,
   Sparkles,
@@ -315,8 +312,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   onUpdateBigPictureTheme,
   onToggleFavorite,
   onOpenSettings,
-  onOpenAddGame,
-  onOpenBatchImport,
   onOpenGameDetails,
   raUsername,
   raApiKey,
@@ -361,17 +356,11 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   const emulatorCount = useMemo(() => games.filter((g) => Boolean(g.is_emulator)).length, [games]);
   const favoritesCount = useMemo(() => games.filter((g) => Boolean(g.is_favorite)).length, [games]);
 
-  // Dynamic list of available actions in the top-right console HUD
-  type HeaderActionId = "search" | "add_game" | "import_roms" | "settings" | "theme" | "exit";
+  // Available actions in the top-right console HUD
+  type HeaderActionId = "search" | "theme" | "exit";
   const availableHeaderActions = useMemo<HeaderActionId[]>(() => {
-    const actions: HeaderActionId[] = ["search"];
-    if (onOpenAddGame) actions.push("add_game");
-    if (onOpenBatchImport) actions.push("import_roms");
-    if (onOpenSettings) actions.push("settings");
-    actions.push("theme");
-    actions.push("exit");
-    return actions;
-  }, [onOpenAddGame, onOpenBatchImport, onOpenSettings]);
+    return ["search", "theme", "exit"];
+  }, []);
 
   // Dynamic list of available filter pills in the Sub-HUD
   type FilterPillItem =
@@ -433,15 +422,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           return next;
         });
         if (activeTab !== "library") setActiveTab("library");
-        break;
-      case "add_game":
-        if (onOpenAddGame) onOpenAddGame();
-        break;
-      case "import_roms":
-        if (onOpenBatchImport) onOpenBatchImport();
-        break;
-      case "settings":
-        if (onOpenSettings) onOpenSettings();
         break;
       case "theme":
         const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
@@ -660,10 +640,11 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             cycleTab(1);
           } else if (btnStart) {
             lastButtonPress.current = now;
-            if (onOpenSettings) {
-              playSound("select");
-              onOpenSettings();
-            }
+            playThemeSound("select");
+            const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
+            const currentIdx = bpThemes.indexOf(currentBpTheme);
+            setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
+            setIsThemeModalOpen(true);
           } else if (btnBack) {
             // View / Select button instantly jumps to top header actions or back to shelf
             lastButtonPress.current = now;
@@ -820,9 +801,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     onStopGame,
     onExitBigPicture,
     onOpenGameDetails,
-    onOpenSettings,
-    onOpenBatchImport,
-    onOpenAddGame,
     isSearchOpen,
     searchQuery,
   ]);
@@ -998,21 +976,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             playSound("select");
             onToggleFavorite(current);
           }
-        } else if (e.key === "c" || e.key === "C" || e.key === "s" || e.key === "S") {
-          if (onOpenSettings) {
-            playSound("select");
-            onOpenSettings();
-          }
-        } else if (e.key === "i" || e.key === "I") {
-          if (onOpenBatchImport) {
-            playSound("select");
-            onOpenBatchImport();
-          }
-        } else if (e.key === "n" || e.key === "N") {
-          if (onOpenAddGame) {
-            playSound("select");
-            onOpenAddGame();
-          }
         } else if (e.key === "r" || e.key === "R") {
           playSound("select");
           setActiveTab("replay");
@@ -1052,9 +1015,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     onStopGame,
     onExitBigPicture,
     onOpenGameDetails,
-    onOpenSettings,
-    onOpenBatchImport,
-    onOpenAddGame,
     isSearchOpen,
     searchQuery,
   ]);
@@ -1163,7 +1123,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         </div>
 
         <div className="hud-right">
-          {/* Action Buttons: Search, Add Game, Batch Import, Settings */}
+          {/* Action Buttons: Search */}
           <div className="hud-actions-group">
             <button
               className={`hud-action-btn ${isSearchOpen || searchQuery ? "active" : ""} ${
@@ -1185,72 +1145,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
               <Search size={15} />
               <span>Buscar</span>
             </button>
-
-            {onOpenAddGame && (
-              <button
-                className={`hud-action-btn ${
-                  focusZone === "header" && availableHeaderActions[headerFocusIndex] === "add_game"
-                    ? "gp-focused"
-                    : ""
-                }`}
-                onClick={() => {
-                  playSound("select");
-                  onOpenAddGame();
-                }}
-                onMouseEnter={() => {
-                  const idx = availableHeaderActions.indexOf("add_game");
-                  if (idx !== -1) setHeaderFocusIndex(idx);
-                }}
-                title="Adicionar Jogo (N)"
-              >
-                <Plus size={15} />
-                <span>+ Jogo</span>
-              </button>
-            )}
-
-            {onOpenBatchImport && (
-              <button
-                className={`hud-action-btn ${
-                  focusZone === "header" && availableHeaderActions[headerFocusIndex] === "import_roms"
-                    ? "gp-focused"
-                    : ""
-                }`}
-                onClick={() => {
-                  playSound("select");
-                  onOpenBatchImport();
-                }}
-                onMouseEnter={() => {
-                  const idx = availableHeaderActions.indexOf("import_roms");
-                  if (idx !== -1) setHeaderFocusIndex(idx);
-                }}
-                title="Importar ROMs em Lote (I)"
-              >
-                <FolderUp size={15} />
-                <span>Importar ROMs</span>
-              </button>
-            )}
-
-            {onOpenSettings && (
-              <button
-                className={`hud-action-btn ${
-                  focusZone === "header" && availableHeaderActions[headerFocusIndex] === "settings"
-                    ? "gp-focused"
-                    : ""
-                }`}
-                onClick={() => {
-                  playSound("select");
-                  onOpenSettings();
-                }}
-                onMouseEnter={() => {
-                  const idx = availableHeaderActions.indexOf("settings");
-                  if (idx !== -1) setHeaderFocusIndex(idx);
-                }}
-                title="Configurações (C / Start)"
-              >
-                <Settings size={15} />
-                <span>Configurações</span>
-              </button>
-            )}
           </div>
 
           {/* ACTIVE BIG PICTURE CONSOLE DASHBOARD HIGHLIGHT PILL */}
@@ -1816,18 +1710,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 >
                   <ConsoleIcon iconName="switch" size={20} />
                   <span className="switch-util-tooltip">Temas</span>
-                </button>
-                <button
-                  type="button"
-                  className="switch-util-btn"
-                  title="Configurações do Sistema"
-                  onClick={() => {
-                    playThemeSound("select");
-                    if (onOpenSettings) onOpenSettings();
-                  }}
-                >
-                  <Settings size={20} />
-                  <span className="switch-util-tooltip">Ajustes</span>
                 </button>
                 <button
                   type="button"
