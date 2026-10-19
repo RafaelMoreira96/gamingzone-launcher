@@ -293,6 +293,16 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                     {userProfile.points.toLocaleString("pt-BR")} pts
                   </span>
                 </div>
+                {((userProfile.softcore_points ?? 0) > 0) && (
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block" }}>
+                      Pontos Softcore
+                    </span>
+                    <span style={{ fontSize: "1.1rem", fontWeight: 900, color: "#38bdf8" }}>
+                      {(userProfile.softcore_points ?? 0).toLocaleString("pt-BR")} pts
+                    </span>
+                  </div>
+                )}
                 <div style={{ textAlign: "right" }}>
                   <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block" }}>
                     True Points (Raridade)
@@ -448,7 +458,7 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       <span style={{ fontSize: "1.25rem", fontWeight: 800, color: "#fff" }}>
                         {raProgress.game_title}
                       </span>
@@ -465,6 +475,37 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                       >
                         {raProgress.console_name} • ID {raProgress.game_id}
                       </span>
+                      {raProgress.award_mode === "softcore" || raProgress.is_hardcore === false ? (
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            background: "rgba(56, 189, 248, 0.15)",
+                            color: "#38bdf8",
+                            border: "1px solid rgba(56, 189, 248, 0.35)",
+                            borderRadius: "4px",
+                            padding: "2px 8px",
+                            fontWeight: 800,
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          🛡️ SOFTCORE
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            background: "rgba(255, 153, 0, 0.15)",
+                            color: "#FFB84D",
+                            border: "1px solid rgba(255, 153, 0, 0.35)",
+                            borderRadius: "4px",
+                            padding: "2px 8px",
+                            fontWeight: 800,
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          🔥 HARDCORE
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "4px" }}>
@@ -476,9 +517,15 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <div style={{ textAlign: "right" }}>
                       <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>
-                        Pontuação
+                        Pontuação ({raProgress.award_mode === "softcore" || raProgress.is_hardcore === false ? "Softcore" : "Hardcore"})
                       </span>
-                      <span style={{ fontSize: "1.15rem", fontWeight: 900, color: "#FFB84D" }}>
+                      <span
+                        style={{
+                          fontSize: "1.15rem",
+                          fontWeight: 900,
+                          color: raProgress.award_mode === "softcore" || raProgress.is_hardcore === false ? "#38bdf8" : "#FFB84D",
+                        }}
+                      >
                         {raProgress.unlocked_points} / {raProgress.total_points} pts
                       </span>
                     </div>
@@ -538,17 +585,22 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                 const isBeaten = raProgress.is_beaten || isMastered;
                 const hasWinConditions = (raProgress.win_conditions_total || 0) > 0;
                 const beatenDate = raProgress.beaten_date || raProgress.highest_award_date;
+                const isHc = raProgress.is_hardcore !== false && raProgress.award_mode !== "softcore";
 
                 return (
                   <div
                     style={{
                       background: isMastered
-                        ? "linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(20, 20, 10, 0.9) 100%)"
+                        ? isHc
+                          ? "linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(20, 20, 10, 0.9) 100%)"
+                          : "linear-gradient(135deg, rgba(203, 213, 225, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%)"
                         : isBeaten
                         ? "linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(10, 25, 18, 0.9) 100%)"
                         : "linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)",
                       border: isMastered
-                        ? "1px solid rgba(255, 184, 0, 0.45)"
+                        ? isHc
+                          ? "1px solid rgba(255, 184, 0, 0.45)"
+                          : "1px solid rgba(203, 213, 225, 0.45)"
                         : isBeaten
                         ? "1px solid rgba(74, 222, 128, 0.45)"
                         : "1px solid rgba(255, 255, 255, 0.1)",
@@ -568,19 +620,19 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                           height: "42px",
                           borderRadius: "10px",
                           background: isMastered
-                            ? "rgba(255, 184, 0, 0.2)"
+                            ? isHc ? "rgba(255, 184, 0, 0.2)" : "rgba(203, 213, 225, 0.15)"
                             : isBeaten
                             ? "rgba(74, 222, 128, 0.2)"
                             : "rgba(255, 255, 255, 0.05)",
                           border: isMastered
-                            ? "1px solid #FFB800"
+                            ? isHc ? "1px solid #FFB800" : "1px solid #cbd5e1"
                             : isBeaten
                             ? "1px solid #4ade80"
                             : "1px solid rgba(255, 255, 255, 0.1)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: isMastered ? "#FFB800" : isBeaten ? "#4ade80" : "var(--text-muted)",
+                          color: isMastered ? (isHc ? "#FFB800" : "#cbd5e1") : isBeaten ? "#4ade80" : "var(--text-muted)",
                           flexShrink: 0,
                         }}
                       >
@@ -592,14 +644,18 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                             style={{
                               fontSize: "0.92rem",
                               fontWeight: 800,
-                              color: isMastered ? "#FFD54F" : isBeaten ? "#4ade80" : "#fff",
+                              color: isMastered ? (isHc ? "#FFD54F" : "#f1f5f9") : isBeaten ? "#4ade80" : "#fff",
                             }}
                           >
                             {isMastered
-                              ? "👑 JOGO 100% MASTERIZADO NO RETROACHIEVEMENTS"
+                              ? isHc
+                                ? "👑 JOGO 100% MASTERIZADO (MODO HARDCORE)"
+                                : "🥈 JOGO 100% CONCLUÍDO (MODO SOFTCORE)"
                               : isBeaten
-                              ? "🏆 JOGO ZERADO (BEATEN) NO RETROACHIEVEMENTS"
-                              : "PROGRESSO PARA ZERAR O JOGO"}
+                              ? isHc
+                                ? "🏆 JOGO ZERADO (MODO HARDCORE)"
+                                : "🏆 JOGO ZERADO (MODO SOFTCORE)"
+                              : `PROGRESSO PARA ZERAR (${isHc ? "MODO HARDCORE" : "MODO SOFTCORE"})`}
                           </span>
                           {beatenDate && (
                             <span
@@ -607,7 +663,7 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                                 fontSize: "0.75rem",
                                 fontWeight: 800,
                                 color: "#080a0f",
-                                background: isMastered ? "#FFD54F" : "#4ade80",
+                                background: isMastered ? (isHc ? "#FFD54F" : "#cbd5e1") : "#4ade80",
                                 padding: "2px 8px",
                                 borderRadius: "999px",
                                 display: "inline-flex",
@@ -616,23 +672,29 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                               }}
                             >
                               <Calendar size={12} />
-                              Zerado em: {formatRaDate(beatenDate)}
+                              {isMastered
+                                ? isHc ? "Masterizado em: " : "Concluído em: "
+                                : "Zerado em: "}
+                              {formatRaDate(beatenDate)}
                             </span>
                           )}
                         </div>
                         <p style={{ margin: "3px 0 0 0", fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
                           {isMastered ? (
-                            <span>Todas as <strong>{raProgress.total_achievements}</strong> conquistas foram conquistadas! O jogo foi 100% dominado.</span>
+                            <span>
+                              Todas as <strong>{raProgress.total_achievements}</strong> conquistas foram conquistadas! O jogo foi 100% dominado no{" "}
+                              <strong style={{ color: isHc ? "#FFB84D" : "#38bdf8" }}>{isHc ? "Modo Hardcore" : "Modo Softcore"}</strong> oficial.
+                            </span>
                           ) : isBeaten ? (
                             <span>
-                              ✓ Requisitos de desbloqueio cumpridos:{" "}
+                              ✓ Requisitos de desbloqueio cumpridos ({isHc ? "Modo Hardcore" : "Modo Softcore"}):{" "}
                               {hasWinConditions
                                 ? `Todas as condições de vitória foram concluídas (${raProgress.win_conditions_unlocked}/${raProgress.win_conditions_total} metas de vitória).`
                                 : "Todas as conquistas principais necessárias foram alcançadas."}
                             </span>
                           ) : (
                             <span>
-                              Requisitos para zerar:{" "}
+                              Requisitos para zerar ({isHc ? "Modo Hardcore" : "Modo Softcore"}):{" "}
                               {hasWinConditions ? (
                                 <>
                                   Desbloqueie todas as <strong>{raProgress.win_conditions_total}</strong> conquistas com a tag <em>🏆 Condição de Vitória (Requisito para Zerar)</em> ({raProgress.win_conditions_unlocked || 0}/{raProgress.win_conditions_total}).
@@ -869,19 +931,58 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "3px 0 0 0" }}>
                             {ach.description}
                           </p>
-                          {ach.date_unlocked && (
-                            <span
-                              style={{
-                                fontSize: "0.72rem",
-                                color: isWinCond ? "#4ade80" : "var(--accent-green)",
-                                marginTop: "4px",
-                                display: "inline-block",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Desbloqueada em {formatRaDate(ach.date_unlocked)}
-                            </span>
-                          )}
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+                            {ach.date_unlocked && (
+                              <span
+                                style={{
+                                  fontSize: "0.72rem",
+                                  color: isWinCond ? "#4ade80" : "var(--accent-green)",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Desbloqueada em {formatRaDate(ach.date_unlocked)}
+                              </span>
+                            )}
+                            {ach.is_unlocked && (
+                              ach.hardcore ? (
+                                <span
+                                  style={{
+                                    color: "#FFB84D",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 800,
+                                    background: "rgba(255, 153, 0, 0.2)",
+                                    border: "1px solid rgba(255, 153, 0, 0.4)",
+                                    padding: "1px 6px",
+                                    borderRadius: "4px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                  }}
+                                  title="Desbloqueada no Modo Hardcore"
+                                >
+                                  🔥 Hardcore
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    color: "#38bdf8",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 800,
+                                    background: "rgba(56, 189, 248, 0.15)",
+                                    border: "1px solid rgba(56, 189, 248, 0.4)",
+                                    padding: "1px 6px",
+                                    borderRadius: "4px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                  }}
+                                  title="Desbloqueada no Modo Softcore"
+                                >
+                                  🛡️ Softcore
+                                </span>
+                              )
+                            )}
+                          </div>
                         </div>
 
                         {/* POINTS BADGE */}

@@ -43,6 +43,9 @@ pub struct RaGameProgress {
     pub is_mastered: bool,
     pub win_conditions_total: u32,
     pub win_conditions_unlocked: u32,
+    pub unlocked_hardcore_count: u32,
+    pub is_hardcore: bool,
+    pub award_mode: Option<String>,
 }
 
 fn parse_json_u32(v: Option<&serde_json::Value>) -> Option<u32> {
@@ -161,6 +164,10 @@ pub struct RaUserGame {
     pub beaten_date: Option<String>,
     pub is_beaten: bool,
     pub is_mastered: bool,
+    pub num_achieved_hardcore: u32,
+    pub score_achieved_hardcore: u32,
+    pub is_hardcore: bool,
+    pub award_mode: Option<String>,
 }
 
 pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUserGame>, String> {
@@ -228,13 +235,14 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
         }
     }
 
-    // Helper closure to calculate beaten/mastered status and completion date
+    // Helper closure to calculate beaten/mastered status, completion date, and hardcore mode
     let calc_status = |num_achieved: u32,
+                       num_achieved_hc: u32,
                        max_possible: u32,
                        last_played: &Option<String>,
                        award_kind: &Option<String>,
                        award_date: &Option<String>|
-     -> (bool, bool, Option<String>) {
+     -> (bool, bool, Option<String>, bool, Option<String>) {
         let is_100_percent = max_possible > 0 && num_achieved >= max_possible;
 
         let has_beaten_award = award_kind.as_deref().map(|k| {
@@ -258,7 +266,22 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
             }
         });
 
-        (is_beaten, is_mastered, beaten_date)
+        let is_hardcore = if let Some(ref k) = award_kind {
+            let l = k.to_lowercase();
+            l == "mastered" || l == "beaten-hardcore" || (num_achieved_hc > 0 && num_achieved_hc >= num_achieved)
+        } else {
+            num_achieved_hc > 0 && num_achieved_hc >= num_achieved
+        };
+
+        let award_mode = if is_hardcore {
+            Some("hardcore".to_string())
+        } else if num_achieved > 0 || award_kind.is_some() {
+            Some("softcore".to_string())
+        } else {
+            None
+        };
+
+        (is_beaten, is_mastered, beaten_date, is_hardcore, award_mode)
     };
 
     // 2. Query recently played games and enrich with completion awards
@@ -308,8 +331,8 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
                         None => (None, None),
                     };
 
-                    let (is_beaten, is_mastered, beaten_date) =
-                        calc_status(num_achieved, max_possible, &last_played, &award_kind, &award_date);
+                    let (is_beaten, is_mastered, beaten_date, is_hardcore, award_mode) =
+                        calc_status(num_achieved, num_achieved_hc, max_possible, &last_played, &award_kind, &award_date);
 
                     seen_ids.insert(gid);
                     games.push(RaUserGame {
@@ -321,15 +344,19 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
                         image_title: title_img,
                         image_box_art: box_art,
                         num_achieved,
+                        num_achieved_hardcore: num_achieved_hc,
                         num_possible_achievements: max_possible,
                         possible_score: parse_json_u32(item.get("PossibleScore")).unwrap_or(0),
                         score_achieved,
+                        score_achieved_hardcore: score_hc,
                         last_played,
                         highest_award_kind: award_kind,
                         highest_award_date: award_date,
                         beaten_date,
                         is_beaten,
                         is_mastered,
+                        is_hardcore,
+                        award_mode,
                     });
                 }
             }
@@ -379,8 +406,8 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
             None => (None, None),
         };
 
-        let (is_beaten, is_mastered, beaten_date) =
-            calc_status(num_achieved, max_possible, &last_played, &award_kind, &award_date);
+        let (is_beaten, is_mastered, beaten_date, is_hardcore, award_mode) =
+            calc_status(num_achieved, num_achieved_hc, max_possible, &last_played, &award_kind, &award_date);
 
         seen_ids.insert(gid);
         games.push(RaUserGame {
@@ -392,15 +419,19 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
             image_title: None,
             image_box_art: box_art,
             num_achieved,
+            num_achieved_hardcore: num_achieved_hc,
             num_possible_achievements: max_possible,
             possible_score,
             score_achieved,
+            score_achieved_hardcore: score_hc,
             last_played,
             highest_award_kind: award_kind,
             highest_award_date: award_date,
             beaten_date,
             is_beaten,
             is_mastered,
+            is_hardcore,
+            award_mode,
         });
     }
 
@@ -435,8 +466,8 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
                         let possible_score = parse_json_u32(ach_info.and_then(|a| a.get("PossibleScore"))).unwrap_or(0);
 
                         let last_played = item.get("LastPlayed").and_then(|v| v.as_str()).map(|s| s.to_string());
-                        let (is_beaten, is_mastered, beaten_date) =
-                            calc_status(num_hc.max(num_sc), max_possible, &last_played, &None, &None);
+                        let (is_beaten, is_mastered, beaten_date, is_hardcore, award_mode) =
+                            calc_status(num_hc.max(num_sc), num_hc, max_possible, &last_played, &None, &None);
 
                         seen_ids.insert(gid);
                         games.push(RaUserGame {
@@ -448,15 +479,19 @@ pub fn get_user_recent_games(username: &str, api_key: &str) -> Result<Vec<RaUser
                             image_title: format_media(item.get("ImageTitle").and_then(|v| v.as_str())),
                             image_box_art: format_media(item.get("ImageBoxArt").and_then(|v| v.as_str())),
                             num_achieved: num_hc.max(num_sc),
+                            num_achieved_hardcore: num_hc,
                             num_possible_achievements: max_possible,
                             possible_score,
                             score_achieved: score_hc.max(score_sc),
+                            score_achieved_hardcore: score_hc,
                             last_played,
                             highest_award_kind: None,
                             highest_award_date: None,
                             beaten_date,
                             is_beaten,
                             is_mastered,
+                            is_hardcore,
+                            award_mode,
                         });
                     }
                 }
@@ -542,6 +577,7 @@ fn fetch_live_game_progress(game_id: u32, username: &str, api_key: &str) -> Resu
     let mut total_points = 0u32;
     let mut unlocked_points = 0u32;
     let mut unlocked_count = 0u32;
+    let mut unlocked_hardcore_count = 0u32;
     let mut win_conditions_total = 0u32;
     let mut win_conditions_unlocked = 0u32;
     let mut latest_win_date: Option<String> = None;
@@ -567,9 +603,9 @@ fn fetch_live_game_progress(game_id: u32, username: &str, api_key: &str) -> Resu
             let date_awarded_hc = has_unlock_timestamp(ach.get("DateAwardedHardcore"));
             let date_awarded = has_unlock_timestamp(ach.get("DateAwarded"));
 
-            let unlock_date = date_earned_hc.clone().or(date_earned).or(date_awarded_hc).or(date_awarded);
+            let is_hardcore = date_earned_hc.is_some() || date_awarded_hc.is_some();
+            let unlock_date = date_earned_hc.or(date_awarded_hc).or(date_earned).or(date_awarded);
             let is_unlocked = unlock_date.is_some();
-            let is_hardcore = date_earned_hc.is_some();
 
             let ach_type = ach.get("type")
                 .or_else(|| ach.get("Type"))
@@ -593,6 +629,9 @@ fn fetch_live_game_progress(game_id: u32, username: &str, api_key: &str) -> Resu
             if is_unlocked {
                 unlocked_count += 1;
                 unlocked_points += pts;
+                if is_hardcore {
+                    unlocked_hardcore_count += 1;
+                }
                 if let Some(ref d) = unlock_date {
                     if latest_any_date.as_ref().map(|l| d > l).unwrap_or(true) {
                         latest_any_date = Some(d.clone());
@@ -636,6 +675,9 @@ fn fetch_live_game_progress(game_id: u32, username: &str, api_key: &str) -> Resu
     if api_unlocked > unlocked_count {
         unlocked_count = api_unlocked;
     }
+    if api_unlocked_hc > unlocked_hardcore_count {
+        unlocked_hardcore_count = api_unlocked_hc;
+    }
 
     let completion_percentage = if total_achievements > 0 {
         (unlocked_count as f64 / total_achievements as f64) * 100.0
@@ -675,6 +717,21 @@ fn fetch_live_game_progress(game_id: u32, username: &str, api_key: &str) -> Resu
         .or_else(|| if won_all_win_conditions { latest_win_date } else { None })
         .or_else(|| if is_beaten { latest_any_date } else { None });
 
+    let is_hardcore_game = if let Some(ref k) = api_award_kind {
+        let l = k.to_lowercase();
+        l == "mastered" || l == "beaten-hardcore" || (unlocked_hardcore_count > 0 && unlocked_hardcore_count >= unlocked_count)
+    } else {
+        unlocked_hardcore_count > 0 && unlocked_hardcore_count >= unlocked_count
+    };
+
+    let award_mode = if is_hardcore_game {
+        Some("hardcore".to_string())
+    } else if unlocked_count > 0 || api_award_kind.is_some() {
+        Some("softcore".to_string())
+    } else {
+        None
+    };
+
     let game_title = val.get("Title").and_then(|v| v.as_str()).unwrap_or("Jogo Retrô").to_string();
     let console_name = val.get("ConsoleName").and_then(|v| v.as_str()).unwrap_or("Console").to_string();
 
@@ -695,6 +752,9 @@ fn fetch_live_game_progress(game_id: u32, username: &str, api_key: &str) -> Resu
         is_mastered,
         win_conditions_total,
         win_conditions_unlocked,
+        unlocked_hardcore_count,
+        is_hardcore: is_hardcore_game,
+        award_mode,
     })
 }
 
@@ -960,6 +1020,7 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
         ];
 
         let unlocked_count = achs.iter().filter(|a| a.is_unlocked).count() as u32;
+        let hc_count = achs.iter().filter(|a| a.is_unlocked && a.hardcore).count() as u32;
         let total_count = achs.len() as u32;
         let unlocked_pts: u32 = achs.iter().filter(|a| a.is_unlocked).map(|a| a.points).sum();
         let total_pts: u32 = achs.iter().map(|a| a.points).sum();
@@ -984,6 +1045,9 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
             is_mastered: false,
             win_conditions_total: win_total,
             win_conditions_unlocked: win_unlocked,
+            unlocked_hardcore_count: hc_count,
+            is_hardcore: true,
+            award_mode: Some("hardcore".to_string()),
         }
     } else if lower.contains("castlevania") || lower.contains("sotn") {
         let achs = vec![
@@ -995,7 +1059,7 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
                 badge_url: "https://media.retroachievements.org/Badge/001201.png".to_string(),
                 is_unlocked: true,
                 date_unlocked: Some("2026-10-16 19:40:00".to_string()),
-                hardcore: true,
+                hardcore: false,
                 achievement_type: Some("progression".to_string()),
             },
             RaAchievement {
@@ -1006,7 +1070,7 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
                 badge_url: "https://media.retroachievements.org/Badge/001202.png".to_string(),
                 is_unlocked: true,
                 date_unlocked: Some("2026-10-16 20:30:00".to_string()),
-                hardcore: true,
+                hardcore: false,
                 achievement_type: Some("progression".to_string()),
             },
             RaAchievement {
@@ -1017,7 +1081,7 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
                 badge_url: "https://media.retroachievements.org/Badge/001203.png".to_string(),
                 is_unlocked: false,
                 date_unlocked: None,
-                hardcore: true,
+                hardcore: false,
                 achievement_type: Some("progression".to_string()),
             },
             RaAchievement {
@@ -1028,12 +1092,13 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
                 badge_url: "https://media.retroachievements.org/Badge/001204.png".to_string(),
                 is_unlocked: false,
                 date_unlocked: None,
-                hardcore: true,
+                hardcore: false,
                 achievement_type: Some("win_condition".to_string()),
             },
         ];
 
         let unlocked_count = achs.iter().filter(|a| a.is_unlocked).count() as u32;
+        let hc_count = achs.iter().filter(|a| a.is_unlocked && a.hardcore).count() as u32;
         let total_count = achs.len() as u32;
         let unlocked_pts: u32 = achs.iter().filter(|a| a.is_unlocked).map(|a| a.points).sum();
         let total_pts: u32 = achs.iter().map(|a| a.points).sum();
@@ -1058,6 +1123,9 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
             is_mastered: false,
             win_conditions_total: win_total,
             win_conditions_unlocked: win_unlocked,
+            unlocked_hardcore_count: hc_count,
+            is_hardcore: false,
+            award_mode: Some("softcore".to_string()),
         }
     } else if lower.contains("metroid") {
         let achs = vec![
@@ -1108,6 +1176,7 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
         ];
 
         let unlocked_count = achs.iter().filter(|a| a.is_unlocked).count() as u32;
+        let hc_count = achs.iter().filter(|a| a.is_unlocked && a.hardcore).count() as u32;
         let total_count = achs.len() as u32;
         let unlocked_pts: u32 = achs.iter().filter(|a| a.is_unlocked).map(|a| a.points).sum();
         let total_pts: u32 = achs.iter().map(|a| a.points).sum();
@@ -1132,6 +1201,9 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
             is_mastered: false,
             win_conditions_total: win_total,
             win_conditions_unlocked: win_unlocked,
+            unlocked_hardcore_count: hc_count,
+            is_hardcore: true,
+            award_mode: Some("hardcore".to_string()),
         }
     } else {
         // Generic RetroAchievements set
@@ -1183,6 +1255,7 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
         ];
 
         let unlocked_count = achs.iter().filter(|a| a.is_unlocked).count() as u32;
+        let hc_count = achs.iter().filter(|a| a.is_unlocked && a.hardcore).count() as u32;
         let total_count = achs.len() as u32;
         let unlocked_pts: u32 = achs.iter().filter(|a| a.is_unlocked).map(|a| a.points).sum();
         let total_pts: u32 = achs.iter().map(|a| a.points).sum();
@@ -1207,6 +1280,9 @@ fn generate_sample_achievements(title: &str, platform_id: &str, game_id: u32) ->
             is_mastered: false,
             win_conditions_total: win_total,
             win_conditions_unlocked: win_unlocked,
+            unlocked_hardcore_count: hc_count,
+            is_hardcore: hc_count > 0,
+            award_mode: if hc_count > 0 { Some("hardcore".to_string()) } else if unlocked_count > 0 { Some("softcore".to_string()) } else { None },
         }
     }
 }

@@ -165,6 +165,9 @@ export interface RaGameProgress {
   is_mastered?: boolean;
   win_conditions_total?: number;
   win_conditions_unlocked?: number;
+  unlocked_hardcore_count?: number;
+  is_hardcore?: boolean;
+  award_mode?: string | null;
 }
 
 export interface RaUserGame {
@@ -176,15 +179,19 @@ export interface RaUserGame {
   image_title?: string;
   image_box_art?: string;
   num_achieved: number;
+  num_achieved_hardcore?: number;
   num_possible_achievements: number;
   possible_score: number;
   score_achieved: number;
+  score_achieved_hardcore?: number;
   last_played?: string;
   highest_award_kind?: string | null;
   highest_award_date?: string | null;
   beaten_date?: string | null;
   is_beaten?: boolean;
   is_mastered?: boolean;
+  is_hardcore?: boolean;
+  award_mode?: string | null;
 }
 
 export interface ScrapedAsset {

@@ -1169,7 +1169,14 @@ export const api = {
         }
       }
 
-      const calcStatus = (numAch: number, maxPoss: number, lastPlayed?: string, awardKind?: string, awardDate?: string) => {
+      const calcStatus = (
+        numAch: number,
+        numAchHc: number,
+        maxPoss: number,
+        lastPlayed?: string,
+        awardKind?: string,
+        awardDate?: string
+      ) => {
         const is100 = maxPoss > 0 && numAch >= maxPoss;
         const hasBeatenAward = awardKind
           ? ["beaten", "mastered", "completed"].some((w) => awardKind.toLowerCase().includes(w))
@@ -1180,7 +1187,13 @@ export const api = {
         const isBeaten = hasBeatenAward || is100;
         const isMastered = hasMasteredAward || is100;
         const beatenDate = awardDate || (isBeaten ? lastPlayed : undefined);
-        return { isBeaten, isMastered, beatenDate };
+
+        const isHardcore = awardKind
+          ? (awardKind.toLowerCase() === "mastered" || awardKind.toLowerCase() === "beaten-hardcore" || (numAchHc > 0 && numAchHc >= numAch))
+          : (numAchHc > 0 && numAchHc >= numAch);
+        const awardMode = isHardcore ? "hardcore" : (numAch > 0 || !!awardKind ? "softcore" : undefined);
+
+        return { isBeaten, isMastered, beatenDate, isHardcore, awardMode };
       };
 
       // 2. Fetch recently played games
@@ -1197,22 +1210,21 @@ export const api = {
               for (const item of list) {
                 const gid = Number(item.GameID);
                 if (!gid) continue;
-                const numAchieved = Math.max(
-                  Number(item.NumAchievedHardcore) || 0,
-                  Number(item.NumAchieved) || 0
-                );
-                const scoreAchieved = Math.max(
-                  Number(item.ScoreAchievedHardcore) || 0,
-                  Number(item.ScoreAchieved) || 0
-                );
+                const numAchievedHc = Number(item.NumAchievedHardcore) || 0;
+                const numAchievedSc = Number(item.NumAchieved) || 0;
+                const numAchieved = Math.max(numAchievedHc, numAchievedSc);
+                const scoreAchievedHc = Number(item.ScoreAchievedHardcore) || 0;
+                const scoreAchievedSc = Number(item.ScoreAchieved) || 0;
+                const scoreAchieved = Math.max(scoreAchievedHc, scoreAchievedSc);
                 const maxPossible = Number(item.NumPossibleAchievements) || 0;
                 let lastPlayed = item.LastPlayed || undefined;
                 const awardInfo = awardsMap.get(gid);
                 if (!lastPlayed && awardInfo?.recentDate) {
                   lastPlayed = awardInfo.recentDate;
                 }
-                const { isBeaten, isMastered, beatenDate } = calcStatus(
+                const { isBeaten, isMastered, beatenDate, isHardcore, awardMode } = calcStatus(
                   numAchieved,
+                  numAchievedHc,
                   maxPossible,
                   lastPlayed,
                   awardInfo?.awardKind,
@@ -1240,15 +1252,19 @@ export const api = {
                       : `https://media.retroachievements.org${item.ImageBoxArt}`
                     : undefined,
                   num_achieved: numAchieved,
+                  num_achieved_hardcore: numAchievedHc,
                   num_possible_achievements: maxPossible,
                   possible_score: Number(item.PossibleScore) || 0,
                   score_achieved: scoreAchieved,
+                  score_achieved_hardcore: scoreAchievedHc,
                   last_played: lastPlayed,
                   highest_award_kind: awardInfo?.awardKind,
                   highest_award_date: awardInfo?.awardDate,
                   beaten_date: beatenDate,
                   is_beaten: isBeaten,
                   is_mastered: isMastered,
+                  is_hardcore: isHardcore,
+                  award_mode: awardMode,
                 });
               }
               break;
@@ -1263,19 +1279,18 @@ export const api = {
       for (const item of rawCompletionResults) {
         const gid = Number(item.GameID);
         if (!gid || gamesMap.has(gid)) continue;
-        const numAchieved = Math.max(
-          Number(item.NumAwardedHardcore) || 0,
-          Number(item.NumAwarded) || 0
-        );
-        const scoreAchieved = Math.max(
-          Number(item.ScoreAchievedHardcore) || 0,
-          Number(item.ScoreAchieved) || 0
-        );
+        const numAchievedHc = Number(item.NumAwardedHardcore) || 0;
+        const numAchievedSc = Number(item.NumAwarded) || 0;
+        const numAchieved = Math.max(numAchievedHc, numAchievedSc);
+        const scoreAchievedHc = Number(item.ScoreAchievedHardcore) || 0;
+        const scoreAchievedSc = Number(item.ScoreAchieved) || 0;
+        const scoreAchieved = Math.max(scoreAchievedHc, scoreAchievedSc);
         const maxPossible = Number(item.MaxPossibleAchievements || item.MaxPossible || item.NumPossibleAchievements) || 0;
         const lastPlayed = item.LastPlayed || item.MostRecentAwardedDate || undefined;
         const awardInfo = awardsMap.get(gid);
-        const { isBeaten, isMastered, beatenDate } = calcStatus(
+        const { isBeaten, isMastered, beatenDate, isHardcore, awardMode } = calcStatus(
           numAchieved,
+          numAchievedHc,
           maxPossible,
           lastPlayed,
           awardInfo?.awardKind,
@@ -1299,15 +1314,19 @@ export const api = {
               : `https://media.retroachievements.org${item.ImageBoxArt}`
             : undefined,
           num_achieved: numAchieved,
+          num_achieved_hardcore: numAchievedHc,
           num_possible_achievements: maxPossible,
           possible_score: Number(item.PossibleScore) || 0,
           score_achieved: scoreAchieved,
+          score_achieved_hardcore: scoreAchievedHc,
           last_played: lastPlayed,
           highest_award_kind: awardInfo?.awardKind,
           highest_award_date: awardInfo?.awardDate,
           beaten_date: beatenDate,
           is_beaten: isBeaten,
           is_mastered: isMastered,
+          is_hardcore: isHardcore,
+          award_mode: awardMode,
         });
       }
 
@@ -1326,12 +1345,16 @@ export const api = {
         image_icon: "https://media.retroachievements.org/Images/045812.png",
         image_box_art: "https://media.retroachievements.org/Images/045815.png",
         num_achieved: 18,
+        num_achieved_hardcore: 18,
         num_possible_achievements: 54,
         possible_score: 600,
         score_achieved: 195,
+        score_achieved_hardcore: 195,
         last_played: "2026-10-18 16:20:00",
         is_beaten: false,
         is_mastered: false,
+        is_hardcore: true,
+        award_mode: "hardcore",
       },
       {
         game_id: 9989,
@@ -1341,12 +1364,16 @@ export const api = {
         image_icon: "https://media.retroachievements.org/Images/009989.png",
         image_box_art: "https://media.retroachievements.org/Images/023412.png",
         num_achieved: 32,
+        num_achieved_hardcore: 32,
         num_possible_achievements: 85,
         possible_score: 1100,
         score_achieved: 410,
+        score_achieved_hardcore: 410,
         last_played: "2026-10-18 15:40:00",
         is_beaten: false,
         is_mastered: false,
+        is_hardcore: true,
+        award_mode: "hardcore",
       },
       {
         game_id: 2276,
@@ -1356,12 +1383,16 @@ export const api = {
         image_icon: "https://media.retroachievements.org/Images/002276.png",
         image_box_art: "https://media.retroachievements.org/Images/023413.png",
         num_achieved: 4,
+        num_achieved_hardcore: 4,
         num_possible_achievements: 7,
         possible_score: 100,
         score_achieved: 25,
+        score_achieved_hardcore: 25,
         last_played: "2026-10-18 12:00:00",
         is_beaten: false,
         is_mastered: false,
+        is_hardcore: true,
+        award_mode: "hardcore",
       },
       {
         game_id: 11257,
@@ -1371,12 +1402,16 @@ export const api = {
         image_icon: "https://media.retroachievements.org/Images/011257.png",
         image_box_art: "https://media.retroachievements.org/Images/045818.png",
         num_achieved: 22,
+        num_achieved_hardcore: 0,
         num_possible_achievements: 68,
         possible_score: 750,
         score_achieved: 260,
+        score_achieved_hardcore: 0,
         last_played: "2026-10-17 21:10:00",
         is_beaten: false,
         is_mastered: false,
+        is_hardcore: false,
+        award_mode: "softcore",
       },
       {
         game_id: 2854,
@@ -1386,15 +1421,19 @@ export const api = {
         image_icon: "https://media.retroachievements.org/Images/002854.png",
         image_box_art: "https://media.retroachievements.org/Images/045819.png",
         num_achieved: 35,
+        num_achieved_hardcore: 35,
         num_possible_achievements: 45,
         possible_score: 500,
         score_achieved: 380,
+        score_achieved_hardcore: 380,
         last_played: "2026-10-17 18:30:00",
-        highest_award_kind: "beaten",
+        highest_award_kind: "beaten-hardcore",
         highest_award_date: "2026-10-17 18:30:00",
         beaten_date: "2026-10-17 18:30:00",
         is_beaten: true,
         is_mastered: false,
+        is_hardcore: true,
+        award_mode: "hardcore",
       },
       {
         game_id: 11293,
@@ -1404,15 +1443,19 @@ export const api = {
         image_icon: "https://media.retroachievements.org/Images/011293.png",
         image_box_art: "https://media.retroachievements.org/Images/045821.png",
         num_achieved: 26,
+        num_achieved_hardcore: 26,
         num_possible_achievements: 26,
         possible_score: 400,
         score_achieved: 400,
+        score_achieved_hardcore: 400,
         last_played: "2026-10-16 19:45:00",
         highest_award_kind: "mastered",
         highest_award_date: "2026-10-16 19:45:00",
         beaten_date: "2026-10-16 19:45:00",
         is_beaten: true,
         is_mastered: true,
+        is_hardcore: true,
+        award_mode: "hardcore",
       },
       {
         game_id: 1,
@@ -1422,12 +1465,19 @@ export const api = {
         image_icon: "https://media.retroachievements.org/Images/000001.png",
         image_box_art: "https://media.retroachievements.org/Images/045820.png",
         num_achieved: 12,
+        num_achieved_hardcore: 0,
         num_possible_achievements: 24,
         possible_score: 300,
         score_achieved: 150,
+        score_achieved_hardcore: 0,
         last_played: "2026-10-15 14:15:00",
-        is_beaten: false,
-        is_mastered: false,
+        highest_award_kind: "completed",
+        highest_award_date: "2026-10-15 14:15:00",
+        beaten_date: "2026-10-15 14:15:00",
+        is_beaten: true,
+        is_mastered: true,
+        is_hardcore: false,
+        award_mode: "softcore",
       },
     ];
   },
@@ -1560,6 +1610,12 @@ export const api = {
               const isMastered = hasAwardMastered || is100;
               const beatenDate = rawAwardDate || (wonAllWins ? latestWinDate : undefined) || (isBeaten ? latestAnyDate : undefined);
 
+              const hcCount = achList.filter((a) => a.is_unlocked && a.hardcore).length;
+              const isHardcore = rawAwardKind
+                ? (rawAwardKind.toLowerCase() === "mastered" || rawAwardKind.toLowerCase() === "beaten-hardcore" || (hcCount > 0 && hcCount >= unlockedCount))
+                : (hcCount > 0 && hcCount >= unlockedCount);
+              const awardMode = isHardcore ? "hardcore" : (unlockedCount > 0 || !!rawAwardKind ? "softcore" : undefined);
+
               return {
                 game_id: gameId,
                 game_title: data.Title || payload.title,
@@ -1577,6 +1633,9 @@ export const api = {
                 is_mastered: isMastered,
                 win_conditions_total: winTotal,
                 win_conditions_unlocked: winUnlocked,
+                unlocked_hardcore_count: hcCount,
+                is_hardcore: isHardcore,
+                award_mode: awardMode,
               };
             }
           }
@@ -1959,6 +2018,9 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       unlocked_points: unlPts,
       completion_percentage: (unlCount / achs.length) * 100,
       achievements: achs,
+      unlocked_hardcore_count: unlCount,
+      is_hardcore: true,
+      award_mode: "hardcore",
     };
   }
 
@@ -2047,6 +2109,9 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       unlocked_points: unlPts,
       completion_percentage: (unlCount / achs.length) * 100,
       achievements: achs,
+      unlocked_hardcore_count: unlCount,
+      is_hardcore: true,
+      award_mode: "hardcore",
     };
   }
 
@@ -2136,6 +2201,9 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       is_mastered: false,
       win_conditions_total: 1,
       win_conditions_unlocked: 0,
+      unlocked_hardcore_count: unlCount,
+      is_hardcore: true,
+      award_mode: "hardcore",
     };
   }
 
@@ -2149,7 +2217,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/011257.png",
         is_unlocked: true,
         date_unlocked: "2026-10-17 19:20:00",
-        hardcore: true,
+        hardcore: false,
         achievement_type: "progression",
       },
       {
@@ -2160,7 +2228,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/001201.png",
         is_unlocked: true,
         date_unlocked: "2026-10-17 19:45:00",
-        hardcore: true,
+        hardcore: false,
         achievement_type: "progression",
       },
       {
@@ -2171,7 +2239,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/001202.png",
         is_unlocked: true,
         date_unlocked: "2026-10-17 20:30:00",
-        hardcore: true,
+        hardcore: false,
         achievement_type: "progression",
       },
       {
@@ -2181,7 +2249,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         points: 25,
         badge_url: "https://media.retroachievements.org/Badge/001203.png",
         is_unlocked: false,
-        hardcore: true,
+        hardcore: false,
         achievement_type: "progression",
       },
       {
@@ -2191,7 +2259,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         points: 25,
         badge_url: "https://media.retroachievements.org/Badge/001204.png",
         is_unlocked: false,
-        hardcore: true,
+        hardcore: false,
         achievement_type: "missable",
       },
       {
@@ -2201,7 +2269,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         points: 50,
         badge_url: "https://media.retroachievements.org/Badge/001205.png",
         is_unlocked: false,
-        hardcore: true,
+        hardcore: false,
         achievement_type: "win_condition",
       },
     ];
@@ -2224,6 +2292,9 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       is_mastered: false,
       win_conditions_total: 1,
       win_conditions_unlocked: 0,
+      unlocked_hardcore_count: 0,
+      is_hardcore: false,
+      award_mode: "softcore",
     };
   }
 
@@ -2296,6 +2367,9 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       is_mastered: true,
       win_conditions_total: 1,
       win_conditions_unlocked: 1,
+      unlocked_hardcore_count: unlCount,
+      is_hardcore: true,
+      award_mode: "hardcore",
     };
   }
 
@@ -2309,7 +2383,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/000001.png",
         is_unlocked: true,
         date_unlocked: "2026-10-15 13:40:00",
-        hardcore: true,
+        hardcore: false,
         achievement_type: "progression",
       },
       {
@@ -2320,7 +2394,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/000002.png",
         is_unlocked: true,
         date_unlocked: "2026-10-15 14:05:00",
-        hardcore: true,
+        hardcore: false,
         achievement_type: "progression",
       },
       {
@@ -2331,7 +2405,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/000003.png",
         is_unlocked: true,
         date_unlocked: "2026-10-15 14:15:00",
-        hardcore: true,
+        hardcore: false,
         achievement_type: "progression",
       },
       {
@@ -2341,7 +2415,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         points: 25,
         badge_url: "https://media.retroachievements.org/Badge/000004.png",
         is_unlocked: false,
-        hardcore: true,
+        hardcore: false,
         achievement_type: "win_condition",
       },
     ];
@@ -2360,10 +2434,16 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       unlocked_points: unlPts,
       completion_percentage: (unlCount / achs.length) * 100,
       achievements: achs,
-      is_beaten: false,
-      is_mastered: false,
+      highest_award_kind: "completed",
+      highest_award_date: "2026-10-15 14:15:00",
+      beaten_date: "2026-10-15 14:15:00",
+      is_beaten: true,
+      is_mastered: true,
       win_conditions_total: 1,
       win_conditions_unlocked: 0,
+      unlocked_hardcore_count: 0,
+      is_hardcore: false,
+      award_mode: "softcore",
     };
   }
 
@@ -2431,5 +2511,8 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
     is_mastered: false,
     win_conditions_total: 1,
     win_conditions_unlocked: 0,
+    unlocked_hardcore_count: unlCount,
+    is_hardcore: unlCount > 0,
+    award_mode: unlCount > 0 ? "hardcore" : undefined,
   };
 }

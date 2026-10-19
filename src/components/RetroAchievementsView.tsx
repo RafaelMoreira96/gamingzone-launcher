@@ -57,6 +57,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
   // Filters for Account Games tab
   const [accountSearchQuery, setAccountSearchQuery] = useState("");
   const [accountConsoleFilter, setAccountConsoleFilter] = useState<string>("all");
+  const [accountModeFilter, setAccountModeFilter] = useState<"all" | "hardcore" | "softcore">("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "beaten" | "mastered" | "in_progress">("all");
   const [accountSortBy, setAccountSortBy] = useState<"recent" | "progress_desc" | "achievements_desc" | "name_asc">("recent");
 
@@ -212,6 +213,14 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
     () => accountGames.filter((g) => !g.is_beaten && !g.is_mastered && !(g.num_possible_achievements > 0 && g.num_achieved >= g.num_possible_achievements)).length,
     [accountGames]
   );
+  const hardcoreGamesCount = useMemo(
+    () => accountGames.filter((g) => g.is_hardcore ?? (g.award_mode === "hardcore" || (g.num_achieved_hardcore ?? 0) > 0)).length,
+    [accountGames]
+  );
+  const softcoreGamesCount = useMemo(
+    () => accountGames.filter((g) => !(g.is_hardcore ?? (g.award_mode === "hardcore" || (g.num_achieved_hardcore ?? 0) > 0))).length,
+    [accountGames]
+  );
 
   // Filtered & Sorted account games
   const filteredAccountGames = useMemo(() => {
@@ -223,6 +232,10 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
       if (accountStatusFilter === "beaten" && !isBeaten) return false;
       if (accountStatusFilter === "mastered" && !isMastered) return false;
       if (accountStatusFilter === "in_progress" && (isBeaten || isMastered)) return false;
+
+      const isHardcore = g.is_hardcore ?? (g.award_mode === "hardcore" || (g.num_achieved_hardcore ?? 0) > 0);
+      if (accountModeFilter === "hardcore" && !isHardcore) return false;
+      if (accountModeFilter === "softcore" && isHardcore) return false;
 
       if (accountSearchQuery.trim()) {
         const q = accountSearchQuery.toLowerCase();
@@ -248,7 +261,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
       default:
         return list;
     }
-  }, [accountGames, accountConsoleFilter, accountStatusFilter, accountSearchQuery, accountSortBy]);
+  }, [accountGames, accountConsoleFilter, accountModeFilter, accountStatusFilter, accountSearchQuery, accountSortBy]);
 
   // Filtered & Sorted Achievements for Selected Game
   const filteredAchievements = useMemo(() => {
@@ -462,6 +475,16 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                 {userProfile.points.toLocaleString("pt-BR")} pts
               </span>
             </div>
+            {userProfile.softcore_points > 0 && (
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>
+                  Pontos Softcore
+                </span>
+                <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "#38bdf8" }}>
+                  {userProfile.softcore_points.toLocaleString("pt-BR")} pts
+                </span>
+              </div>
+            )}
             <div style={{ textAlign: "right" }}>
               <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>
                 True Points (Raridade)
@@ -711,6 +734,48 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                 </select>
               </div>
 
+              {/* MODE SELECTOR */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "rgba(0, 0, 0, 0.35)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "6px 12px",
+                }}
+              >
+                <span style={{ fontSize: "14px" }}>
+                  {accountModeFilter === "hardcore" ? "🔥" : accountModeFilter === "softcore" ? "🛡️" : "🎮"}
+                </span>
+                <select
+                  className="form-input"
+                  value={accountModeFilter}
+                  onChange={(e) => setAccountModeFilter(e.target.value as any)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: accountModeFilter === "hardcore" ? "#FFB84D" : accountModeFilter === "softcore" ? "#38bdf8" : "#fff",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: "2px 0",
+                    outline: "none",
+                  }}
+                >
+                  <option value="all" style={{ background: "#0d131f", color: "#fff" }}>
+                    Todos os Modos ({accountGames.length})
+                  </option>
+                  <option value="hardcore" style={{ background: "#0d131f", color: "#FFB84D" }}>
+                    🔥 Hardcore ({hardcoreGamesCount})
+                  </option>
+                  <option value="softcore" style={{ background: "#0d131f", color: "#38bdf8" }}>
+                    🛡️ Softcore ({softcoreGamesCount})
+                  </option>
+                </select>
+              </div>
+
               {/* SORT SELECTOR */}
               <div
                 style={{
@@ -747,13 +812,14 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
               </div>
 
               {/* CLEAR FILTERS BUTTON (se filtros ativos) */}
-              {(accountSearchQuery || accountConsoleFilter !== "all" || accountStatusFilter !== "all" || accountSortBy !== "recent") && (
+              {(accountSearchQuery || accountConsoleFilter !== "all" || accountModeFilter !== "all" || accountStatusFilter !== "all" || accountSortBy !== "recent") && (
                 <button
                   type="button"
                   className="btn-secondary"
                   onClick={() => {
                     setAccountSearchQuery("");
                     setAccountConsoleFilter("all");
+                    setAccountModeFilter("all");
                     setAccountStatusFilter("all");
                     setAccountSortBy("recent");
                   }}
@@ -947,6 +1013,23 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                 const isMastered = game.is_mastered || (game.num_possible_achievements > 0 && game.num_achieved >= game.num_possible_achievements);
                 const isBeaten = game.is_beaten || isMastered;
                 const beatenDate = game.beaten_date || game.highest_award_date;
+                const isGameHardcore = game.is_hardcore ?? (game.award_mode === "hardcore" || (game.num_achieved_hardcore ?? 0) > 0);
+
+                const cardBorder = isMastered
+                  ? isGameHardcore
+                    ? "1px solid rgba(255, 184, 0, 0.55)"
+                    : "1px solid rgba(203, 213, 225, 0.55)"
+                  : isBeaten
+                  ? "1px solid rgba(74, 222, 128, 0.45)"
+                  : "1px solid rgba(255, 255, 255, 0.08)";
+
+                const cardShadow = isMastered
+                  ? isGameHardcore
+                    ? "0 4px 20px rgba(255, 184, 0, 0.15)"
+                    : "0 4px 20px rgba(148, 163, 184, 0.15)"
+                  : isBeaten
+                  ? "0 4px 20px rgba(74, 222, 128, 0.12)"
+                  : "0 4px 14px rgba(0,0,0,0.3)";
 
                 return (
                   <div
@@ -954,11 +1037,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                     onClick={() => handleSelectAccountGame(game)}
                     style={{
                       background: "linear-gradient(145deg, rgba(18, 24, 38, 0.85) 0%, rgba(10, 14, 22, 0.95) 100%)",
-                      border: isMastered
-                        ? "1px solid rgba(255, 184, 0, 0.55)"
-                        : isBeaten
-                        ? "1px solid rgba(74, 222, 128, 0.45)"
-                        : "1px solid rgba(255, 255, 255, 0.08)",
+                      border: cardBorder,
                       borderRadius: "var(--radius-lg)",
                       padding: "16px",
                       display: "flex",
@@ -966,37 +1045,29 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                       cursor: "pointer",
                       transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
                       position: "relative",
-                      boxShadow: isMastered
-                        ? "0 4px 20px rgba(255, 184, 0, 0.15)"
-                        : isBeaten
-                        ? "0 4px 20px rgba(74, 222, 128, 0.12)"
-                        : "0 4px 14px rgba(0,0,0,0.3)",
+                      boxShadow: cardShadow,
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = "translateY(-4px)";
                       e.currentTarget.style.borderColor = isMastered
-                        ? "#FFB800"
+                        ? isGameHardcore ? "#FFB800" : "#e2e8f0"
                         : isBeaten
                         ? "#4ade80"
-                        : "#FF9900";
+                        : isGameHardcore ? "#FF9900" : "#38bdf8";
                       e.currentTarget.style.boxShadow = isMastered
-                        ? "0 8px 25px rgba(255, 184, 0, 0.25)"
+                        ? isGameHardcore ? "0 8px 25px rgba(255, 184, 0, 0.25)" : "0 8px 25px rgba(203, 213, 225, 0.25)"
                         : isBeaten
                         ? "0 8px 25px rgba(74, 222, 128, 0.25)"
-                        : "0 8px 25px rgba(255, 153, 0, 0.2)";
+                        : isGameHardcore ? "0 8px 25px rgba(255, 153, 0, 0.2)" : "0 8px 25px rgba(56, 189, 248, 0.2)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = "none";
                       e.currentTarget.style.borderColor = isMastered
-                        ? "rgba(255, 184, 0, 0.55)"
+                        ? isGameHardcore ? "rgba(255, 184, 0, 0.55)" : "rgba(203, 213, 225, 0.55)"
                         : isBeaten
                         ? "rgba(74, 222, 128, 0.45)"
                         : "rgba(255, 255, 255, 0.08)";
-                      e.currentTarget.style.boxShadow = isMastered
-                        ? "0 4px 20px rgba(255, 184, 0, 0.15)"
-                        : isBeaten
-                        ? "0 4px 20px rgba(74, 222, 128, 0.12)"
-                        : "0 4px 14px rgba(0,0,0,0.3)";
+                      e.currentTarget.style.boxShadow = cardShadow;
                     }}
                   >
                     {/* GAME COVER / ICON */}
@@ -1024,17 +1095,21 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                             position: "absolute",
                             top: "-6px",
                             right: "-6px",
-                            background: "linear-gradient(135deg, #FFB800 0%, #FF8800 100%)",
+                            background: isGameHardcore
+                              ? "linear-gradient(135deg, #FFB800 0%, #FF8800 100%)"
+                              : "linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%)",
                             borderRadius: "50%",
                             width: "24px",
                             height: "24px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            boxShadow: "0 0 10px rgba(255, 184, 0, 0.6)",
+                            boxShadow: isGameHardcore
+                              ? "0 0 10px rgba(255, 184, 0, 0.6)"
+                              : "0 0 10px rgba(203, 213, 225, 0.6)",
                             color: "#080a0f",
                           }}
-                          title="100% Mastered"
+                          title={isGameHardcore ? "100% Mastered (Hardcore)" : "100% Completed (Softcore)"}
                         >
                           <Star size={14} fill="#080a0f" />
                         </div>
@@ -1054,7 +1129,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                             boxShadow: "0 0 10px rgba(74, 222, 128, 0.6)",
                             color: "#080a0f",
                           }}
-                          title="Jogo Zerado (Beaten)"
+                          title={isGameHardcore ? "Jogo Zerado (Hardcore)" : "Jogo Zerado (Softcore)"}
                         >
                           <Trophy size={13} fill="#080a0f" />
                         </div>
@@ -1064,7 +1139,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                     {/* GAME INFO */}
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                       <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", flexWrap: "wrap" }}>
                           <span
                             style={{
                               fontSize: "0.68rem",
@@ -1078,18 +1153,43 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                           >
                             {game.console_name}
                           </span>
+
+                          {/* HARDCORE vs SOFTCORE BADGE */}
+                          <span
+                            style={{
+                              fontSize: "0.65rem",
+                              fontWeight: 800,
+                              color: isGameHardcore ? "#FFB84D" : "#38bdf8",
+                              background: isGameHardcore ? "rgba(255, 153, 0, 0.18)" : "rgba(56, 189, 248, 0.15)",
+                              border: isGameHardcore ? "1px solid rgba(255, 153, 0, 0.4)" : "1px solid rgba(56, 189, 248, 0.4)",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                            }}
+                          >
+                            {isGameHardcore ? "🔥 HARDCORE" : "🛡️ SOFTCORE"}
+                          </span>
+
+                          {/* MASTERED (GOLD) vs COMPLETED (SILVER) vs BEATEN */}
                           {isMastered ? (
                             <span
                               style={{
                                 fontSize: "0.65rem",
                                 fontWeight: 800,
                                 color: "#080a0f",
-                                background: "#FFB800",
+                                background: isGameHardcore
+                                  ? "linear-gradient(135deg, #FFD54F 0%, #FFB800 100%)"
+                                  : "linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%)",
                                 padding: "2px 6px",
                                 borderRadius: "4px",
+                                boxShadow: isGameHardcore
+                                  ? "0 0 8px rgba(255, 184, 0, 0.35)"
+                                  : "0 0 8px rgba(203, 213, 225, 0.35)",
                               }}
                             >
-                              100% MASTERED
+                              {isGameHardcore ? "👑 100% MASTERED" : "🥈 100% COMPLETED"}
                             </span>
                           ) : isBeaten ? (
                             <span
@@ -1102,7 +1202,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                                 borderRadius: "4px",
                               }}
                             >
-                              🏆 ZERADO
+                              🏆 ZERADO ({isGameHardcore ? "HC" : "SC"})
                             </span>
                           ) : null}
                         </div>
@@ -1125,8 +1225,12 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                             style={{
                               marginTop: "6px",
                               padding: "5px 8px",
-                              background: isMastered ? "rgba(255, 184, 0, 0.1)" : "rgba(74, 222, 128, 0.1)",
-                              border: isMastered ? "1px solid rgba(255, 184, 0, 0.3)" : "1px solid rgba(74, 222, 128, 0.3)",
+                              background: isMastered
+                                ? isGameHardcore ? "rgba(255, 184, 0, 0.1)" : "rgba(203, 213, 225, 0.1)"
+                                : "rgba(74, 222, 128, 0.1)",
+                              border: isMastered
+                                ? isGameHardcore ? "1px solid rgba(255, 184, 0, 0.35)" : "1px solid rgba(203, 213, 225, 0.35)"
+                                : "1px solid rgba(74, 222, 128, 0.3)",
                               borderRadius: "6px",
                               display: "flex",
                               flexDirection: "column",
@@ -1140,16 +1244,20 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                                 gap: "5px",
                                 fontSize: "0.74rem",
                                 fontWeight: 700,
-                                color: isMastered ? "#FFD54F" : "#4ade80",
+                                color: isMastered ? (isGameHardcore ? "#FFD54F" : "#cbd5e1") : "#4ade80",
                               }}
                             >
                               <Trophy size={13} />
                               <span>
-                                {isMastered ? "Masterizado" : "Zerado"} em: {formatRaDate(beatenDate || game.last_played)}
+                                {isMastered
+                                  ? isGameHardcore ? "Masterizado (Hardcore)" : "Concluído (Softcore)"
+                                  : isGameHardcore ? "Zerado (Hardcore)" : "Zerado (Softcore)"} em: {formatRaDate(beatenDate || game.last_played)}
                               </span>
                             </div>
                             <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                              {isMastered ? "✓ Requisito cumprido: 100% das conquistas" : "✓ Requisito cumprido: Condição de vitória conquistada"}
+                              {isMastered
+                                ? `✓ Requisito cumprido: 100% das conquistas (${isGameHardcore ? "Modo Hardcore" : "Modo Softcore"})`
+                                : `✓ Requisito cumprido: Condição de vitória conquistada (${isGameHardcore ? "Modo Hardcore" : "Modo Softcore"})`}
                             </span>
                           </div>
                         ) : (
@@ -1163,7 +1271,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                               gap: "4px",
                             }}
                           >
-                            <span>Requisito para zerar:</span>
+                            <span>Modo {isGameHardcore ? "Hardcore" : "Softcore"}:</span>
                             <span style={{ color: "#94a3b8" }}>Metas de vitória ou 100%</span>
                           </div>
                         )}
@@ -1183,7 +1291,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                           <span>
                             <strong style={{ color: "#fff" }}>{game.num_achieved}</strong> de {game.num_possible_achievements} Conquistas
                           </span>
-                          <span style={{ color: isMastered ? "#FFB84D" : "var(--accent-cyan)", fontWeight: 700 }}>
+                          <span style={{ color: isMastered ? (isGameHardcore ? "#FFB84D" : "#cbd5e1") : "var(--accent-cyan)", fontWeight: 700 }}>
                             {percent}%
                           </span>
                         </div>
@@ -1201,11 +1309,15 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                               height: "100%",
                               width: `${percent}%`,
                               background: isMastered
-                                ? "linear-gradient(90deg, #FFB800 0%, #FF8800 100%)"
+                                ? isGameHardcore
+                                  ? "linear-gradient(90deg, #FFB800 0%, #FF8800 100%)"
+                                  : "linear-gradient(90deg, #f1f5f9 0%, #94a3b8 100%)"
                                 : "linear-gradient(90deg, #00E5FF 0%, #0077FF 100%)",
                               borderRadius: "999px",
                               boxShadow: isMastered
-                                ? "0 0 10px rgba(255, 184, 0, 0.5)"
+                                ? isGameHardcore
+                                  ? "0 0 10px rgba(255, 184, 0, 0.5)"
+                                  : "0 0 10px rgba(203, 213, 225, 0.5)"
                                 : "0 0 8px rgba(0, 229, 255, 0.4)",
                             }}
                           />
@@ -1220,8 +1332,8 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                             fontSize: "0.75rem",
                           }}
                         >
-                          <span style={{ color: "#FFB84D", fontWeight: 700 }}>
-                            {game.score_achieved} / {game.possible_score} pts
+                          <span style={{ color: isGameHardcore ? "#FFB84D" : "#38bdf8", fontWeight: 700 }}>
+                            {game.score_achieved} / {game.possible_score} pts {isGameHardcore ? "🔥 HC" : "🛡️ SC"}
                           </span>
 
                           <span
@@ -1394,7 +1506,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                   </div>
 
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       <span
                         style={{
                           fontSize: "0.75rem",
@@ -1407,6 +1519,27 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                       >
                         {raProgress.console_name}
                       </span>
+                      {(() => {
+                        const isHc = raProgress.is_hardcore ?? (raProgress.award_mode === "hardcore" || (raProgress.unlocked_hardcore_count ?? 0) > 0);
+                        return (
+                          <span
+                            style={{
+                              fontSize: "0.72rem",
+                              color: isHc ? "#FFB84D" : "#38bdf8",
+                              background: isHc ? "rgba(255, 153, 0, 0.2)" : "rgba(56, 189, 248, 0.2)",
+                              border: isHc ? "1px solid rgba(255, 153, 0, 0.4)" : "1px solid rgba(56, 189, 248, 0.4)",
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              fontWeight: 800,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            {isHc ? "🔥 MODO HARDCORE" : "🛡️ MODO SOFTCORE"}
+                          </span>
+                        );
+                      })()}
                       <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                         ID #{raProgress.game_id}
                       </span>
@@ -1481,17 +1614,22 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                 const isBeaten = raProgress.is_beaten || isMastered;
                 const hasWinConditions = (raProgress.win_conditions_total || 0) > 0;
                 const beatenDate = raProgress.beaten_date || raProgress.highest_award_date;
+                const isHc = raProgress.is_hardcore ?? (raProgress.award_mode === "hardcore" || (raProgress.unlocked_hardcore_count ?? 0) > 0);
 
                 return (
                   <div
                     style={{
                       background: isMastered
-                        ? "linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(20, 20, 10, 0.9) 100%)"
+                        ? isHc
+                          ? "linear-gradient(135deg, rgba(255, 184, 0, 0.18) 0%, rgba(20, 20, 10, 0.9) 100%)"
+                          : "linear-gradient(135deg, rgba(226, 232, 240, 0.14) 0%, rgba(15, 23, 42, 0.9) 100%)"
                         : isBeaten
                         ? "linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(10, 25, 18, 0.9) 100%)"
                         : "linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)",
                       border: isMastered
-                        ? "1px solid rgba(255, 184, 0, 0.45)"
+                        ? isHc
+                          ? "1px solid rgba(255, 184, 0, 0.5)"
+                          : "1px solid rgba(203, 213, 225, 0.5)"
                         : isBeaten
                         ? "1px solid rgba(74, 222, 128, 0.45)"
                         : "1px solid rgba(255, 255, 255, 0.1)",
@@ -1503,7 +1641,9 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                       gap: "18px",
                       flexWrap: "wrap",
                       boxShadow: isMastered
-                        ? "0 4px 20px rgba(255, 184, 0, 0.15)"
+                        ? isHc
+                          ? "0 4px 20px rgba(255, 184, 0, 0.18)"
+                          : "0 4px 20px rgba(203, 213, 225, 0.15)"
                         : isBeaten
                         ? "0 4px 20px rgba(74, 222, 128, 0.15)"
                         : "none",
@@ -1516,19 +1656,19 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                           height: "52px",
                           borderRadius: "14px",
                           background: isMastered
-                            ? "rgba(255, 184, 0, 0.2)"
+                            ? isHc ? "rgba(255, 184, 0, 0.2)" : "rgba(226, 232, 240, 0.15)"
                             : isBeaten
                             ? "rgba(74, 222, 128, 0.2)"
                             : "rgba(255, 255, 255, 0.05)",
                           border: isMastered
-                            ? "1px solid #FFB800"
+                            ? isHc ? "1px solid #FFB800" : "1px solid #cbd5e1"
                             : isBeaten
                             ? "1px solid #4ade80"
                             : "1px solid rgba(255, 255, 255, 0.1)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: isMastered ? "#FFB800" : isBeaten ? "#4ade80" : "var(--text-muted)",
+                          color: isMastered ? (isHc ? "#FFB800" : "#e2e8f0") : isBeaten ? "#4ade80" : "var(--text-muted)",
                           flexShrink: 0,
                         }}
                       >
@@ -1540,15 +1680,19 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                             style={{
                               fontSize: "1rem",
                               fontWeight: 800,
-                              color: isMastered ? "#FFD54F" : isBeaten ? "#4ade80" : "#fff",
+                              color: isMastered ? (isHc ? "#FFD54F" : "#f1f5f9") : isBeaten ? "#4ade80" : "#fff",
                               letterSpacing: "0.3px",
                             }}
                           >
                             {isMastered
-                              ? "👑 JOGO 100% MASTERIZADO NO RETROACHIEVEMENTS"
+                              ? isHc
+                                ? "👑 JOGO 100% MASTERIZADO (MODO HARDCORE)"
+                                : "🥈 JOGO 100% CONCLUÍDO (MODO SOFTCORE)"
                               : isBeaten
-                              ? "🏆 JOGO ZERADO (BEATEN) NO RETROACHIEVEMENTS"
-                              : "PROGRESSO PARA ZERAR O JOGO"}
+                              ? isHc
+                                ? "🏆 JOGO ZERADO (MODO HARDCORE)"
+                                : "🏆 JOGO ZERADO (MODO SOFTCORE)"
+                              : `PROGRESSO PARA ZERAR (${isHc ? "MODO HARDCORE" : "MODO SOFTCORE"})`}
                           </span>
                           {beatenDate && (
                             <span
@@ -1556,7 +1700,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                                 fontSize: "0.8rem",
                                 fontWeight: 800,
                                 color: "#080a0f",
-                                background: isMastered ? "#FFD54F" : "#4ade80",
+                                background: isMastered ? (isHc ? "#FFD54F" : "#cbd5e1") : "#4ade80",
                                 padding: "3px 10px",
                                 borderRadius: "999px",
                                 display: "inline-flex",
@@ -1565,25 +1709,29 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                               }}
                             >
                               <Calendar size={13} />
-                              Zerado em: {formatRaDate(beatenDate)}
+                              {isMastered
+                                ? isHc ? "Masterizado em: " : "Concluído em: "
+                                : "Zerado em: "}
+                              {formatRaDate(beatenDate)}
                             </span>
                           )}
                         </div>
                         <p style={{ margin: "5px 0 0 0", fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.45 }}>
                           {isMastered ? (
                             <span>
-                              Parabéns! Todas as <strong>{raProgress.total_achievements}</strong> conquistas foram desbloqueadas. O jogo foi 100% dominado no modo oficial!
+                              Parabéns! Todas as <strong>{raProgress.total_achievements}</strong> conquistas foram desbloqueadas. O jogo foi 100% dominado no{" "}
+                              <strong style={{ color: isHc ? "#FFB84D" : "#38bdf8" }}>{isHc ? "Modo Hardcore" : "Modo Softcore"}</strong> oficial!
                             </span>
                           ) : isBeaten ? (
                             <span>
-                              ✓ Requisitos de desbloqueio cumpridos:{" "}
+                              ✓ Requisitos de desbloqueio cumpridos ({isHc ? "Modo Hardcore" : "Modo Softcore"}):{" "}
                               {hasWinConditions
                                 ? `Todas as condições de vitória foram concluídas (${raProgress.win_conditions_unlocked}/${raProgress.win_conditions_total} metas de vitória desbloqueadas).`
                                 : "Todas as conquistas principais foram alcançadas e o encerramento do jogo foi reconhecido oficialmente."}
                             </span>
                           ) : (
                             <span>
-                              Requisitos para zerar:{" "}
+                              Requisitos para zerar ({isHc ? "Modo Hardcore" : "Modo Softcore"}):{" "}
                               {hasWinConditions ? (
                                 <>
                                   Desbloqueie todas as <strong>{raProgress.win_conditions_total}</strong> conquistas marcadas com o selo <em>🏆 Condição de Vitória (Requisito para Zerar)</em>. Progresso atual: <strong>{raProgress.win_conditions_unlocked || 0}/{raProgress.win_conditions_total}</strong>.
@@ -1896,7 +2044,7 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                               >
                                 <CheckCircle2 size={12} />
                                 <span>
-                                  Desbloqueada {ach.date_unlocked ? `em ${formatRaDate(ach.date_unlocked)}` : "no Modo Hardcore"}
+                                  {ach.date_unlocked ? `Desbloqueada em ${formatRaDate(ach.date_unlocked)}` : "Desbloqueada"}
                                 </span>
                               </span>
                             ) : (
@@ -1914,19 +2062,44 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                               </span>
                             )}
 
-                            {ach.hardcore && ach.is_unlocked && (
-                              <span
-                                style={{
-                                  color: "#FF9900",
-                                  fontSize: "0.68rem",
-                                  fontWeight: 700,
-                                  background: "rgba(255, 153, 0, 0.15)",
-                                  padding: "1px 6px",
-                                  borderRadius: "3px",
-                                }}
-                              >
-                                HARDCORE
-                              </span>
+                            {ach.is_unlocked && (
+                              ach.hardcore ? (
+                                <span
+                                  style={{
+                                    color: "#FFB84D",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 800,
+                                    background: "rgba(255, 153, 0, 0.2)",
+                                    border: "1px solid rgba(255, 153, 0, 0.4)",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                  }}
+                                  title="Desbloqueada no Modo Hardcore (Sem cheats/save states)"
+                                >
+                                  🔥 Hardcore
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    color: "#38bdf8",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 800,
+                                    background: "rgba(56, 189, 248, 0.15)",
+                                    border: "1px solid rgba(56, 189, 248, 0.4)",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                  }}
+                                  title="Desbloqueada no Modo Softcore (Padrão)"
+                                >
+                                  🛡️ Softcore
+                                </span>
+                              )
                             )}
                           </div>
                         </div>
