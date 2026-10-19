@@ -3083,6 +3083,24 @@ html[data-font-size="xlarge"] {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
+.ps-bumper-btn {
+  background: #141824;
+  border: 1px solid rgba(0, 163, 255, 0.4);
+  color: #00a3ff;
+}
+
+.xbox-bumper-btn {
+  background: #111a14;
+  border: 1px solid rgba(16, 124, 16, 0.4);
+  color: #4ade80;
+}
+
+.nin-bumper-btn {
+  background: #1c1414;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
 /* RetroAchievements Modal Sub-tabs */
 .details-subtabs {
   display: flex;

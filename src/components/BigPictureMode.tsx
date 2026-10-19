@@ -19,6 +19,7 @@ import { formatPlaytime, formatImageUrl } from "../services/api";
 import { ReplayView } from "./ReplayView";
 import { RetroAchievementsView } from "./RetroAchievementsView";
 import { ConsoleIcon } from "./ConsoleIcon";
+import { ControllerPromptBadge } from "./ControllerButton";
 
 interface BigPictureModeProps {
   games: Game[];
@@ -1051,20 +1052,23 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         {activeTab === "library" ? (
           <>
             <div className="gamepad-hint-item">
-              <span className="hint-btn">{prompts.select}</span>
+              <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
               <span>Iniciar</span>
             </div>
             <div className="gamepad-hint-item">
-              <span className="hint-btn">{prompts.details} / X</span>
+              <ControllerPromptBadge controllerType={controllerType} action="details" size={20} />
+              <span className="hint-btn">X</span>
               <span>Detalhes & Gerenciar</span>
             </div>
             <div className="gamepad-hint-item">
-              <span className="hint-btn">{prompts.favorite} / F</span>
+              <ControllerPromptBadge controllerType={controllerType} action="favorite" size={20} />
+              <span className="hint-btn">F</span>
               <span>Favorito</span>
             </div>
             <div className="gamepad-hint-item">
-              <span className="hint-btn">
-                {prompts.bumperL} / {prompts.bumperR}
+              <span style={{ display: "inline-flex", gap: "4px" }}>
+                <ControllerPromptBadge controllerType={controllerType} action="bumperL" size={20} />
+                <ControllerPromptBadge controllerType={controllerType} action="bumperR" size={20} />
               </span>
               <span>Mudar Console</span>
             </div>
@@ -1077,14 +1081,16 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
               <span>Buscar</span>
             </div>
             <div className="gamepad-hint-item">
-              <span className="hint-btn">{prompts.back} / ESC</span>
+              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
+              <span className="hint-btn">ESC</span>
               <span>Sair</span>
             </div>
           </>
         ) : (
           <>
             <div className="gamepad-hint-item">
-              <span className="hint-btn">{prompts.back} / ESC</span>
+              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
+              <span className="hint-btn">ESC</span>
               <span>Voltar para a Biblioteca</span>
             </div>
             <div className="gamepad-hint-item">

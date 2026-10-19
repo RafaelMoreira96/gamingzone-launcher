@@ -29,6 +29,7 @@ import { api } from "../services/api";
 import { ambientAudio } from "../services/ambientAudio";
 import { ConsoleIcon } from "./ConsoleIcon";
 import { IconPickerModal } from "./IconPickerModal";
+import { PlayStationButton, XboxButton, NintendoButton } from "./ControllerButton";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -1726,9 +1727,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
                   {(
                     [
-                      { id: "xbox", label: "Xbox", buttons: "A · B · X · Y", desc: "Padrão PC / XInput" },
-                      { id: "playstation", label: "PlayStation", buttons: "✕ · ○ · □ · △", desc: "DualShock / DualSense" },
-                      { id: "nintendo", label: "Nintendo", buttons: "B · A · Y · X", desc: "Switch / Retro Pro" },
+                      {
+                        id: "xbox",
+                        label: "Xbox",
+                        icon: "xbox",
+                        brandColor: "#107C10",
+                        activeBg: "linear-gradient(135deg, rgba(16, 124, 16, 0.16) 0%, rgba(10, 24, 10, 0.85) 100%)",
+                        activeBorder: "#107C10",
+                        activeGlow: "0 0 16px rgba(16, 124, 16, 0.4)",
+                        desc: "Padrão PC / XInput • Microsoft",
+                        renderButtons: () => (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", margin: "8px 0" }}>
+                            <XboxButton letter="A" size={22} />
+                            <XboxButton letter="B" size={22} />
+                            <XboxButton letter="X" size={22} />
+                            <XboxButton letter="Y" size={22} />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "playstation",
+                        label: "PlayStation",
+                        icon: "ps1",
+                        brandColor: "#0070D1",
+                        activeBg: "linear-gradient(135deg, rgba(0, 112, 209, 0.18) 0%, rgba(10, 18, 36, 0.85) 100%)",
+                        activeBorder: "#0070D1",
+                        activeGlow: "0 0 18px rgba(0, 112, 209, 0.45)",
+                        desc: "DualShock / DualSense • Sony",
+                        renderButtons: () => (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", margin: "8px 0" }}>
+                            <PlayStationButton symbol="cross" size={22} />
+                            <PlayStationButton symbol="circle" size={22} />
+                            <PlayStationButton symbol="square" size={22} />
+                            <PlayStationButton symbol="triangle" size={22} />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "nintendo",
+                        label: "Nintendo",
+                        icon: "switch",
+                        brandColor: "#E60012",
+                        activeBg: "linear-gradient(135deg, rgba(230, 0, 18, 0.16) 0%, rgba(30, 10, 10, 0.85) 100%)",
+                        activeBorder: "#E60012",
+                        activeGlow: "0 0 16px rgba(230, 0, 18, 0.4)",
+                        desc: "Switch / Retro Pro • Nintendo",
+                        renderButtons: () => (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", margin: "8px 0" }}>
+                            <NintendoButton letter="B" size={22} />
+                            <NintendoButton letter="A" size={22} />
+                            <NintendoButton letter="Y" size={22} />
+                            <NintendoButton letter="X" size={22} />
+                          </div>
+                        ),
+                      },
                     ] as const
                   ).map((layout) => {
                     const isSelected = (settings.controllerType ?? "xbox") === layout.id;
@@ -1737,29 +1789,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         key={layout.id}
                         onClick={() => onUpdateSettings({ controllerType: layout.id as ControllerPromptType })}
                         style={{
-                          background: isSelected ? "rgba(0, 229, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
-                          border: isSelected ? "2px solid var(--accent-cyan)" : "1px solid var(--border-color)",
+                          background: isSelected ? layout.activeBg : "rgba(255, 255, 255, 0.02)",
+                          border: isSelected ? `2px solid ${layout.activeBorder}` : "1px solid var(--border-color)",
                           borderRadius: "var(--radius-md)",
-                          padding: "14px 12px",
+                          padding: "14px 10px",
                           cursor: "pointer",
-                          transition: "all 0.15s ease",
+                          transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                           textAlign: "center",
+                          boxShadow: isSelected ? layout.activeGlow : "none",
                         }}
                       >
-                        <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "4px" }}>
-                          {layout.label}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "4px" }}>
+                          <ConsoleIcon iconName={layout.icon} size={16} color={isSelected ? layout.brandColor : undefined} />
+                          <span style={{ fontWeight: 800, fontSize: "0.92rem", color: isSelected ? "#fff" : "var(--text-primary)" }}>
+                            {layout.label}
+                          </span>
                         </div>
-                        <div
-                          style={{
-                            fontSize: "0.9rem",
-                            fontWeight: 800,
-                            letterSpacing: "2px",
-                            color: isSelected ? "var(--accent-cyan)" : "var(--text-secondary)",
-                            marginBottom: "6px",
-                          }}
-                        >
-                          {layout.buttons}
-                        </div>
+                        {layout.renderButtons()}
                         <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
                           {layout.desc}
                         </div>
