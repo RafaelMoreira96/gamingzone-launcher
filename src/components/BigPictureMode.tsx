@@ -191,14 +191,142 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   const [gamepadName, setGamepadName] = useState<string | null>(null);
   const [achievementsTargetGame, setAchievementsTargetGame] = useState<Game | null>(null);
 
+  // Joystick & Controller Spatial Focus Management
+  const [focusZone, setFocusZone] = useState<"shelf" | "filters" | "header">("shelf");
+  const [headerFocusIndex, setHeaderFocusIndex] = useState(0);
+  const [filterFocusIndex, setFilterFocusIndex] = useState(0);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const filterPillRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const lastButtonPress = useRef<number>(0);
 
   // Counts
   const recompCount = useMemo(() => games.filter((g) => !g.is_emulator).length, [games]);
   const emulatorCount = useMemo(() => games.filter((g) => Boolean(g.is_emulator)).length, [games]);
   const favoritesCount = useMemo(() => games.filter((g) => Boolean(g.is_favorite)).length, [games]);
+
+  // Dynamic list of available actions in the top-right console HUD
+  type HeaderActionId = "search" | "add_game" | "import_roms" | "settings" | "theme" | "exit";
+  const availableHeaderActions = useMemo<HeaderActionId[]>(() => {
+    const actions: HeaderActionId[] = ["search"];
+    if (onOpenAddGame) actions.push("add_game");
+    if (onOpenBatchImport) actions.push("import_roms");
+    if (onOpenSettings) actions.push("settings");
+    actions.push("theme");
+    actions.push("exit");
+    return actions;
+  }, [onOpenAddGame, onOpenBatchImport, onOpenSettings]);
+
+  // Dynamic list of available filter pills in the Sub-HUD
+  type FilterPillItem =
+    | { type: "all" }
+    | { type: "recomp" }
+    | { type: "emulator" }
+    | { type: "favorites" }
+    | { type: "platform"; id: string };
+
+  const filterPills = useMemo<FilterPillItem[]>(() => {
+    const items: FilterPillItem[] = [
+      { type: "all" },
+      { type: "recomp" },
+      { type: "emulator" },
+      { type: "favorites" },
+    ];
+    platforms
+      .filter((p) => p.is_enabled)
+      .forEach((p) => {
+        items.push({ type: "platform", id: p.id });
+      });
+    return items;
+  }, [platforms]);
+
+  // Clamp focus indices
+  useEffect(() => {
+    if (headerFocusIndex >= availableHeaderActions.length) {
+      setHeaderFocusIndex(Math.max(0, availableHeaderActions.length - 1));
+    }
+  }, [availableHeaderActions.length, headerFocusIndex]);
+
+  useEffect(() => {
+    if (filterFocusIndex >= filterPills.length) {
+      setFilterFocusIndex(Math.max(0, filterPills.length - 1));
+    }
+  }, [filterPills.length, filterFocusIndex]);
+
+  // Auto-scroll focused filter pill into view
+  useEffect(() => {
+    if (focusZone === "filters" && filterPillRefs.current[filterFocusIndex]) {
+      filterPillRefs.current[filterFocusIndex]?.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [focusZone, filterFocusIndex]);
+
+  // Execute Header Action
+  const triggerHeaderAction = (action: HeaderActionId) => {
+    playSound("select");
+    switch (action) {
+      case "search":
+        setIsSearchOpen((prev) => {
+          const next = !prev;
+          if (next) {
+            setTimeout(() => searchInputRef.current?.focus(), 60);
+          }
+          return next;
+        });
+        if (activeTab !== "library") setActiveTab("library");
+        break;
+      case "add_game":
+        if (onOpenAddGame) onOpenAddGame();
+        break;
+      case "import_roms":
+        if (onOpenBatchImport) onOpenBatchImport();
+        break;
+      case "settings":
+        if (onOpenSettings) onOpenSettings();
+        break;
+      case "theme":
+        if (onOpenSettings) onOpenSettings();
+        break;
+      case "exit":
+        onExitBigPicture();
+        break;
+    }
+  };
+
+  // Apply Filter Pill
+  const applyFilterPill = (index: number) => {
+    const item = filterPills[index];
+    if (!item) return;
+    playSound("select");
+    if (item.type === "all") {
+      setSelectedPlatformId(null);
+      setFilterMode("all");
+      setOnlyFavorites(false);
+      setSelectedIndex(0);
+    } else if (item.type === "recomp") {
+      setSelectedPlatformId(null);
+      setFilterMode("recomp");
+      setOnlyFavorites(false);
+      setSelectedIndex(0);
+    } else if (item.type === "emulator") {
+      setSelectedPlatformId(null);
+      setFilterMode("emulator");
+      setOnlyFavorites(false);
+      setSelectedIndex(0);
+    } else if (item.type === "favorites") {
+      setOnlyFavorites((prev) => !prev);
+      setSelectedIndex(0);
+    } else if (item.type === "platform") {
+      setSelectedPlatformId(item.id);
+      setFilterMode("all");
+      setOnlyFavorites(false);
+      setSelectedIndex(0);
+    }
+  };
 
   // Filter games based on platform, type, favorites and search in Big Picture
   const filteredGames = useMemo(() => {
@@ -344,76 +472,138 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           } else if (btnRT) {
             lastButtonPress.current = now;
             cycleTab(1);
-          } else if (activeTab === "library") {
+          } else if (btnStart) {
+            lastButtonPress.current = now;
+            if (onOpenSettings) {
+              playSound("select");
+              onOpenSettings();
+            }
+          } else if (btnBack) {
+            // View / Select button instantly jumps to top header actions or back to shelf
+            lastButtonPress.current = now;
+            playSound("move");
+            setFocusZone((prev) => (prev === "header" ? "shelf" : "header"));
+          } else if (btnGuide) {
+            lastButtonPress.current = now;
+            onExitBigPicture();
+          } else if (focusZone === "header") {
             if (dpadLeft) {
               lastButtonPress.current = now;
               playSound("move");
-              setSelectedIndex((prev) => Math.max(0, prev - 1));
+              setHeaderFocusIndex((prev) => Math.max(0, prev - 1));
             } else if (dpadRight) {
               lastButtonPress.current = now;
               playSound("move");
-              setSelectedIndex((prev) => Math.min(filteredGames.length - 1, prev + 1));
-            } else if (btnLB || dpadUp) {
+              setHeaderFocusIndex((prev) => Math.min(availableHeaderActions.length - 1, prev + 1));
+            } else if (dpadDown) {
               lastButtonPress.current = now;
               playSound("move");
-              cyclePlatform(-1);
-            } else if (btnRB || dpadDown) {
-              lastButtonPress.current = now;
-              playSound("move");
-              cyclePlatform(1);
+              if (activeTab === "library") {
+                setFocusZone("filters");
+              } else {
+                setFocusZone("shelf");
+              }
             } else if (btnA) {
               lastButtonPress.current = now;
-              const current = filteredGames[selectedIndex];
-              if (current) {
-                playSound("select");
-                if (current.is_running) {
-                  onStopGame(current);
-                } else {
-                  onLaunchGame(current);
-                }
+              const action = availableHeaderActions[headerFocusIndex];
+              if (action) {
+                triggerHeaderAction(action);
               }
             } else if (btnB) {
               lastButtonPress.current = now;
               playSound("back");
-              if (isSearchOpen || searchQuery) {
-                setIsSearchOpen(false);
-                setSearchQuery("");
-              } else {
-                onExitBigPicture();
-              }
-            } else if (btnX) {
+              setFocusZone("shelf");
+            }
+          } else if (focusZone === "filters") {
+            if (dpadLeft) {
               lastButtonPress.current = now;
-              const current = filteredGames[selectedIndex];
-              if (current && onOpenGameDetails) {
-                playSound("select");
-                onOpenGameDetails(current);
-              }
-            } else if (btnY) {
+              playSound("move");
+              setFilterFocusIndex((prev) => Math.max(0, prev - 1));
+            } else if (dpadRight) {
               lastButtonPress.current = now;
-              const current = filteredGames[selectedIndex];
-              if (current && onToggleFavorite) {
-                playSound("select");
-                onToggleFavorite(current);
-              }
-            } else if (btnStart || btnBack) {
+              playSound("move");
+              setFilterFocusIndex((prev) => Math.min(filterPills.length - 1, prev + 1));
+            } else if (dpadUp) {
               lastButtonPress.current = now;
-              if (onOpenSettings) {
-                playSound("select");
-                onOpenSettings();
-              }
-            } else if (btnGuide) {
+              playSound("move");
+              setFocusZone("header");
+            } else if (dpadDown || btnB) {
               lastButtonPress.current = now;
-              onExitBigPicture();
+              playSound(btnB ? "back" : "move");
+              setFocusZone("shelf");
+            } else if (btnA) {
+              lastButtonPress.current = now;
+              applyFilterPill(filterFocusIndex);
             }
           } else {
-            // In replay or achievements views, B button returns to library
-            if (btnB) {
-              lastButtonPress.current = now;
-              playSound("back");
-              setActiveTab("library");
-            } else if (btnGuide) {
-              lastButtonPress.current = now;
-              onExitBigPicture();
+            // focusZone === "shelf"
+            if (activeTab === "library") {
+              if (dpadLeft) {
+                lastButtonPress.current = now;
+                playSound("move");
+                setSelectedIndex((prev) => Math.max(0, prev - 1));
+              } else if (dpadRight) {
+                lastButtonPress.current = now;
+                playSound("move");
+                setSelectedIndex((prev) => Math.min(filteredGames.length - 1, prev + 1));
+              } else if (dpadUp) {
+                lastButtonPress.current = now;
+                playSound("move");
+                setFocusZone("filters");
+              } else if (btnLB) {
+                lastButtonPress.current = now;
+                playSound("move");
+                cyclePlatform(-1);
+              } else if (btnRB) {
+                lastButtonPress.current = now;
+                playSound("move");
+                cyclePlatform(1);
+              } else if (btnA) {
+                lastButtonPress.current = now;
+                const current = filteredGames[selectedIndex];
+                if (current) {
+                  playSound("select");
+                  if (current.is_running) {
+                    onStopGame(current);
+                  } else {
+                    onLaunchGame(current);
+                  }
+                }
+              } else if (btnB) {
+                lastButtonPress.current = now;
+                playSound("back");
+                if (isSearchOpen || searchQuery) {
+                  setIsSearchOpen(false);
+                  setSearchQuery("");
+                } else {
+                  onExitBigPicture();
+                }
+              } else if (btnX) {
+                lastButtonPress.current = now;
+                const current = filteredGames[selectedIndex];
+                if (current && onOpenGameDetails) {
+                  playSound("select");
+                  onOpenGameDetails(current);
+                }
+              } else if (btnY) {
+                lastButtonPress.current = now;
+                const current = filteredGames[selectedIndex];
+                if (current && onToggleFavorite) {
+                  playSound("select");
+                  onToggleFavorite(current);
+                }
+              }
+            } else {
+              // In replay or achievements views
+              if (dpadUp) {
+                lastButtonPress.current = now;
+                playSound("move");
+                setFocusZone("header");
+              } else if (btnB) {
+                lastButtonPress.current = now;
+                playSound("back");
+                setActiveTab("library");
+              }
             }
           }
         }
@@ -430,12 +620,19 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     activeTab,
     filteredGames,
     selectedIndex,
+    focusZone,
+    headerFocusIndex,
+    filterFocusIndex,
+    availableHeaderActions,
+    filterPills,
     onToggleFavorite,
     onLaunchGame,
     onStopGame,
     onExitBigPicture,
     onOpenGameDetails,
     onOpenSettings,
+    onOpenBatchImport,
+    onOpenAddGame,
     isSearchOpen,
     searchQuery,
   ]);
@@ -449,6 +646,10 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           setIsSearchOpen(false);
           setSearchQuery("");
           (document.activeElement as HTMLElement)?.blur();
+          setFocusZone("header");
+        } else if (e.key === "ArrowDown") {
+          (document.activeElement as HTMLElement)?.blur();
+          setFocusZone("shelf");
         }
         return;
       }
@@ -483,7 +684,9 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
 
       if (e.key === "Escape") {
         playSound("back");
-        if (activeTab !== "library") {
+        if (focusZone !== "shelf") {
+          setFocusZone("shelf");
+        } else if (activeTab !== "library") {
           setActiveTab("library");
         } else if (isSearchOpen || searchQuery) {
           setIsSearchOpen(false);
@@ -494,6 +697,60 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         return;
       }
 
+      if (e.key === "Tab") {
+        e.preventDefault();
+        playSound("move");
+        setFocusZone((prev) => {
+          if (prev === "shelf") return "filters";
+          if (prev === "filters") return "header";
+          return "shelf";
+        });
+        return;
+      }
+
+      if (focusZone === "header") {
+        if (e.key === "ArrowLeft") {
+          playSound("move");
+          setHeaderFocusIndex((prev) => Math.max(0, prev - 1));
+        } else if (e.key === "ArrowRight") {
+          playSound("move");
+          setHeaderFocusIndex((prev) => Math.min(availableHeaderActions.length - 1, prev + 1));
+        } else if (e.key === "ArrowDown") {
+          playSound("move");
+          if (activeTab === "library") {
+            setFocusZone("filters");
+          } else {
+            setFocusZone("shelf");
+          }
+        } else if (e.key === "Enter") {
+          const action = availableHeaderActions[headerFocusIndex];
+          if (action) {
+            triggerHeaderAction(action);
+          }
+        }
+        return;
+      }
+
+      if (focusZone === "filters") {
+        if (e.key === "ArrowLeft") {
+          playSound("move");
+          setFilterFocusIndex((prev) => Math.max(0, prev - 1));
+        } else if (e.key === "ArrowRight") {
+          playSound("move");
+          setFilterFocusIndex((prev) => Math.min(filterPills.length - 1, prev + 1));
+        } else if (e.key === "ArrowUp") {
+          playSound("move");
+          setFocusZone("header");
+        } else if (e.key === "ArrowDown") {
+          playSound("move");
+          setFocusZone("shelf");
+        } else if (e.key === "Enter") {
+          applyFilterPill(filterFocusIndex);
+        }
+        return;
+      }
+
+      // focusZone === "shelf"
       if (activeTab === "library") {
         if (e.key === "ArrowLeft") {
           playSound("move");
@@ -503,10 +760,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           setSelectedIndex((prev) => Math.min(filteredGames.length - 1, prev + 1));
         } else if (e.key === "ArrowUp") {
           playSound("move");
-          cyclePlatform(-1);
-        } else if (e.key === "ArrowDown") {
-          playSound("move");
-          cyclePlatform(1);
+          setFocusZone("filters");
         } else if (e.key === "Enter") {
           const current = filteredGames[selectedIndex];
           if (current) {
@@ -517,7 +771,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
               onLaunchGame(current);
             }
           }
-        } else if (e.key === "x" || e.key === "X" || e.key === "d" || e.key === "D" || e.key === "Tab") {
+        } else if (e.key === "x" || e.key === "X" || e.key === "d" || e.key === "D") {
           e.preventDefault();
           const current = filteredGames[selectedIndex];
           if (current && onOpenGameDetails) {
@@ -556,6 +810,11 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           e.preventDefault();
           setIsSearchOpen(true);
         }
+      } else {
+        if (e.key === "ArrowUp") {
+          playSound("move");
+          setFocusZone("header");
+        }
       }
     };
 
@@ -565,6 +824,11 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     activeTab,
     filteredGames,
     selectedIndex,
+    focusZone,
+    headerFocusIndex,
+    filterFocusIndex,
+    availableHeaderActions,
+    filterPills,
     onToggleFavorite,
     onLaunchGame,
     onStopGame,
@@ -673,11 +937,19 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           {/* Action Buttons: Search, Add Game, Batch Import, Settings */}
           <div className="hud-actions-group">
             <button
-              className={`hud-action-btn ${isSearchOpen || searchQuery ? "active" : ""}`}
+              className={`hud-action-btn ${isSearchOpen || searchQuery ? "active" : ""} ${
+                focusZone === "header" && availableHeaderActions[headerFocusIndex] === "search"
+                  ? "gp-focused"
+                  : ""
+              }`}
               onClick={() => {
                 playSound("move");
                 setIsSearchOpen((prev) => !prev);
                 if (activeTab !== "library") setActiveTab("library");
+              }}
+              onMouseEnter={() => {
+                const idx = availableHeaderActions.indexOf("search");
+                if (idx !== -1) setHeaderFocusIndex(idx);
               }}
               title="Buscar Jogos (/)"
             >
@@ -687,10 +959,18 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
 
             {onOpenAddGame && (
               <button
-                className="hud-action-btn"
+                className={`hud-action-btn ${
+                  focusZone === "header" && availableHeaderActions[headerFocusIndex] === "add_game"
+                    ? "gp-focused"
+                    : ""
+                }`}
                 onClick={() => {
                   playSound("select");
                   onOpenAddGame();
+                }}
+                onMouseEnter={() => {
+                  const idx = availableHeaderActions.indexOf("add_game");
+                  if (idx !== -1) setHeaderFocusIndex(idx);
                 }}
                 title="Adicionar Jogo (N)"
               >
@@ -701,10 +981,18 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
 
             {onOpenBatchImport && (
               <button
-                className="hud-action-btn"
+                className={`hud-action-btn ${
+                  focusZone === "header" && availableHeaderActions[headerFocusIndex] === "import_roms"
+                    ? "gp-focused"
+                    : ""
+                }`}
                 onClick={() => {
                   playSound("select");
                   onOpenBatchImport();
+                }}
+                onMouseEnter={() => {
+                  const idx = availableHeaderActions.indexOf("import_roms");
+                  if (idx !== -1) setHeaderFocusIndex(idx);
                 }}
                 title="Importar ROMs em Lote (I)"
               >
@@ -715,10 +1003,18 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
 
             {onOpenSettings && (
               <button
-                className="hud-action-btn"
+                className={`hud-action-btn ${
+                  focusZone === "header" && availableHeaderActions[headerFocusIndex] === "settings"
+                    ? "gp-focused"
+                    : ""
+                }`}
                 onClick={() => {
                   playSound("select");
                   onOpenSettings();
+                }}
+                onMouseEnter={() => {
+                  const idx = availableHeaderActions.indexOf("settings");
+                  if (idx !== -1) setHeaderFocusIndex(idx);
                 }}
                 title="Configurações (C / Start)"
               >
@@ -730,13 +1026,21 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
 
           {/* ACTIVE THEME HIGHLIGHT PILL */}
           <div
-            className="hud-theme-badge"
+            className={`hud-theme-badge ${
+              focusZone === "header" && availableHeaderActions[headerFocusIndex] === "theme"
+                ? "gp-focused"
+                : ""
+            }`}
             title={`Tema Desktop Ativo: ${activeTheme.name} (${activeTheme.desc})`}
             onClick={() => {
               if (onOpenSettings) {
                 playSound("select");
                 onOpenSettings();
               }
+            }}
+            onMouseEnter={() => {
+              const idx = availableHeaderActions.indexOf("theme");
+              if (idx !== -1) setHeaderFocusIndex(idx);
             }}
           >
             <Sparkles size={13} style={{ color: activeTheme.accentColor }} />
@@ -761,8 +1065,16 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           <div className="hud-clock">{clock}</div>
 
           <button
-            className="btn-exit-big-picture"
+            className={`btn-exit-big-picture ${
+              focusZone === "header" && availableHeaderActions[headerFocusIndex] === "exit"
+                ? "gp-focused"
+                : ""
+            }`}
             onClick={onExitBigPicture}
+            onMouseEnter={() => {
+              const idx = availableHeaderActions.indexOf("exit");
+              if (idx !== -1) setHeaderFocusIndex(idx);
+            }}
             title="Sair do Modo Big Picture (ESC)"
           >
             <X size={18} />
@@ -778,7 +1090,12 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           <div className="big-picture-subhud">
             <div className="hud-platform-pills">
               <button
-                className={`hud-pill ${selectedPlatformId === null && filterMode === "all" && !onlyFavorites ? "active" : ""}`}
+                ref={(el) => {
+                  filterPillRefs.current[0] = el;
+                }}
+                className={`hud-pill ${
+                  selectedPlatformId === null && filterMode === "all" && !onlyFavorites ? "active" : ""
+                } ${focusZone === "filters" && filterFocusIndex === 0 ? "gp-focused" : ""}`}
                 onClick={() => {
                   playSound("move");
                   setSelectedPlatformId(null);
@@ -790,7 +1107,12 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 Todos ({games.length})
               </button>
               <button
-                className={`hud-pill ${filterMode === "recomp" && selectedPlatformId === null && !onlyFavorites ? "active" : ""}`}
+                ref={(el) => {
+                  filterPillRefs.current[1] = el;
+                }}
+                className={`hud-pill ${
+                  filterMode === "recomp" && selectedPlatformId === null && !onlyFavorites ? "active" : ""
+                } ${focusZone === "filters" && filterFocusIndex === 1 ? "gp-focused" : ""}`}
                 onClick={() => {
                   playSound("move");
                   setSelectedPlatformId(null);
@@ -812,7 +1134,12 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 ⚡ Recomps PC ({recompCount})
               </button>
               <button
-                className={`hud-pill ${filterMode === "emulator" && selectedPlatformId === null && !onlyFavorites ? "active" : ""}`}
+                ref={(el) => {
+                  filterPillRefs.current[2] = el;
+                }}
+                className={`hud-pill ${
+                  filterMode === "emulator" && selectedPlatformId === null && !onlyFavorites ? "active" : ""
+                } ${focusZone === "filters" && filterFocusIndex === 2 ? "gp-focused" : ""}`}
                 onClick={() => {
                   playSound("move");
                   setSelectedPlatformId(null);
@@ -834,7 +1161,12 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 🎮 Emuladores ({emulatorCount})
               </button>
               <button
-                className={`hud-pill ${onlyFavorites ? "active" : ""}`}
+                ref={(el) => {
+                  filterPillRefs.current[3] = el;
+                }}
+                className={`hud-pill ${onlyFavorites ? "active" : ""} ${
+                  focusZone === "filters" && filterFocusIndex === 3 ? "gp-focused" : ""
+                }`}
                 onClick={() => {
                   playSound("move");
                   setOnlyFavorites((prev) => !prev);
@@ -851,30 +1183,38 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
               </button>
               {platforms
                 .filter((p) => p.is_enabled)
-                .map((plat) => (
-                  <button
-                    key={plat.id}
-                    className={`hud-pill ${selectedPlatformId === plat.id ? "active" : ""}`}
-                    onClick={() => {
-                      playSound("move");
-                      setSelectedPlatformId(plat.id);
-                      setFilterMode("all");
-                      setOnlyFavorites(false);
-                      setSelectedIndex(0);
-                    }}
-                    style={{
-                      borderColor: selectedPlatformId === plat.id ? plat.brand_color : undefined,
-                    }}
-                  >
-                    <ConsoleIcon
-                      platformId={plat.id}
-                      name={plat.name}
-                      size={15}
-                      color={plat.brand_color}
-                    />
-                    <span>{plat.short_name}</span>
-                  </button>
-                ))}
+                .map((plat, platIdx) => {
+                  const pillIdx = 4 + platIdx;
+                  return (
+                    <button
+                      key={plat.id}
+                      ref={(el) => {
+                        filterPillRefs.current[pillIdx] = el;
+                      }}
+                      className={`hud-pill ${selectedPlatformId === plat.id ? "active" : ""} ${
+                        focusZone === "filters" && filterFocusIndex === pillIdx ? "gp-focused" : ""
+                      }`}
+                      onClick={() => {
+                        playSound("move");
+                        setSelectedPlatformId(plat.id);
+                        setFilterMode("all");
+                        setOnlyFavorites(false);
+                        setSelectedIndex(0);
+                      }}
+                      style={{
+                        borderColor: selectedPlatformId === plat.id ? plat.brand_color : undefined,
+                      }}
+                    >
+                      <ConsoleIcon
+                        platformId={plat.id}
+                        name={plat.name}
+                        size={15}
+                        color={plat.brand_color}
+                      />
+                      <span>{plat.short_name}</span>
+                    </button>
+                  );
+                })}
             </div>
 
             {/* Quick Search Bar */}
@@ -1115,7 +1455,9 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                   return (
                     <div
                       key={game.id}
-                      className={`shelf-card ${isSelected ? "focused" : ""}`}
+                      className={`shelf-card ${
+                        isSelected ? (focusZone === "shelf" ? "focused" : "idle-selected") : ""
+                      }`}
                       onClick={() => {
                         playSound("move");
                         setSelectedIndex(idx);
@@ -1222,7 +1564,59 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
 
       {/* GAMEPAD / KEYBOARD HINTS FOOTER */}
       <footer className="big-picture-footer">
-        {activeTab === "library" ? (
+        {focusZone === "header" ? (
+          <>
+            <div className="gamepad-hint-item">
+              <span className="hint-btn">← →</span>
+              <span>Navegar Ações</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
+              <span className="hint-btn">Enter</span>
+              <span>Confirmar</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
+              <span className="hint-btn">↓</span>
+              <span>Voltar aos Jogos</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <span style={{ display: "inline-flex", gap: "4px" }}>
+                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
+                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
+              </span>
+              <span>Mudar Aba</span>
+            </div>
+          </>
+        ) : focusZone === "filters" ? (
+          <>
+            <div className="gamepad-hint-item">
+              <span className="hint-btn">← →</span>
+              <span>Navegar Filtros</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
+              <span className="hint-btn">Enter</span>
+              <span>Aplicar Filtro</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <span className="hint-btn">↑</span>
+              <span>Menu Superior</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
+              <span className="hint-btn">↓</span>
+              <span>Voltar aos Jogos</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <span style={{ display: "inline-flex", gap: "4px" }}>
+                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
+                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
+              </span>
+              <span>Mudar Aba</span>
+            </div>
+          </>
+        ) : activeTab === "library" ? (
           <>
             <div className="gamepad-hint-item">
               <span style={{ display: "inline-flex", gap: "4px" }}>
@@ -1230,6 +1624,10 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
               </span>
               <span>Mudar Aba</span>
+            </div>
+            <div className="gamepad-hint-item">
+              <span className="hint-btn">↑</span>
+              <span>Menu / Filtros</span>
             </div>
             <div className="gamepad-hint-item">
               <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
@@ -1253,14 +1651,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
               <span>Mudar Console</span>
             </div>
             <div className="gamepad-hint-item">
-              <span className="hint-btn">C</span>
-              <span>Configurações</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span className="hint-btn">/</span>
-              <span>Buscar</span>
-            </div>
-            <div className="gamepad-hint-item">
               <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
               <span className="hint-btn">ESC</span>
               <span>Sair</span>
@@ -1276,13 +1666,13 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
               <span>Mudar Aba</span>
             </div>
             <div className="gamepad-hint-item">
+              <span className="hint-btn">↑</span>
+              <span>Menu Superior</span>
+            </div>
+            <div className="gamepad-hint-item">
               <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
               <span className="hint-btn">ESC</span>
               <span>Voltar para a Biblioteca</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span className="hint-btn">C</span>
-              <span>Configurações</span>
             </div>
           </>
         )}

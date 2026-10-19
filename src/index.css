@@ -3033,6 +3033,81 @@ html[data-font-size="xlarge"] {
   box-shadow: 0 0 18px var(--accent-red-glow);
 }
 
+/* Gamepad / Joystick Spatial Focus Highlights */
+@keyframes bp-focus-pulse {
+  0% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 16px var(--accent-cyan), 0 0 30px var(--accent-cyan-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 2.5px #ffffff, 0 0 24px var(--accent-cyan), 0 0 45px var(--accent-cyan-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 16px var(--accent-cyan), 0 0 30px var(--accent-cyan-glow);
+  }
+}
+
+@keyframes bp-exit-pulse {
+  0% {
+    box-shadow: 0 0 0 2.5px #ffffff, 0 0 16px var(--accent-red), 0 0 30px var(--accent-red-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 3px #ffffff, 0 0 26px var(--accent-red), 0 0 50px var(--accent-red-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 2.5px #ffffff, 0 0 16px var(--accent-red), 0 0 30px var(--accent-red-glow);
+  }
+}
+
+.hud-action-btn.gp-focused {
+  background: var(--theme-gradient, var(--accent-cyan)) !important;
+  border-color: #ffffff !important;
+  color: #060910 !important;
+  transform: translateY(-2px) scale(1.08) !important;
+  font-weight: 800 !important;
+  animation: bp-focus-pulse 1.8s infinite ease-in-out !important;
+  z-index: 25;
+}
+
+.hud-action-btn.gp-focused svg {
+  color: #060910 !important;
+  stroke-width: 2.5;
+}
+
+.hud-theme-badge.gp-focused {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: #ffffff !important;
+  transform: translateY(-2px) scale(1.08) !important;
+  animation: bp-focus-pulse 1.8s infinite ease-in-out !important;
+  z-index: 25;
+}
+
+.btn-exit-big-picture.gp-focused {
+  background: var(--accent-red) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) scale(1.08) !important;
+  animation: bp-exit-pulse 1.8s infinite ease-in-out !important;
+  font-weight: 800 !important;
+  z-index: 25;
+}
+
+.hud-pill.gp-focused {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) scale(1.08) !important;
+  animation: bp-focus-pulse 1.8s infinite ease-in-out !important;
+  font-weight: 800 !important;
+  z-index: 25;
+}
+
+.hud-pill.active.gp-focused {
+  background: var(--theme-gradient, var(--accent-cyan)) !important;
+  color: #060910 !important;
+  border-color: #ffffff !important;
+  animation: bp-focus-pulse 1.8s infinite ease-in-out !important;
+}
+
 /* Big Picture Sub-HUD (Filters & Search) */
 .big-picture-subhud {
   position: relative;
@@ -3353,6 +3428,15 @@ html[data-font-size="xlarge"] {
   transform: scale(1.16) translateY(-10px);
   border-width: 2.5px;
   z-index: 5;
+}
+
+.shelf-card.idle-selected {
+  opacity: 0.82;
+  transform: scale(1.03) translateY(-4px);
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  z-index: 3;
 }
 
 .shelf-card-img {
