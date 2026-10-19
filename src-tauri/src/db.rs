@@ -250,6 +250,78 @@ impl DbState {
                 "Ports nativos de arcade e Dreamcast",
             ),
             (
+                "snes",
+                "Super Nintendo",
+                "SNES",
+                "#7B52AB",
+                "rgba(123, 82, 171, 0.2)",
+                "snes",
+                "Emulação e recomps de clássicos 16-bit (Super Mario World, Chrono Trigger, DKC)",
+            ),
+            (
+                "nes",
+                "Nintendo Entertainment System",
+                "NES",
+                "#D32F2F",
+                "rgba(211, 47, 47, 0.2)",
+                "nes",
+                "Clássicos 8-bit da era Famicom/NES (Super Mario Bros, Zelda, Metroid)",
+            ),
+            (
+                "gba",
+                "Game Boy Advance",
+                "GBA",
+                "#5B32A3",
+                "rgba(91, 50, 163, 0.2)",
+                "gba",
+                "Portátil 32-bit da Nintendo (Pokémon Emerald, Minish Cap, Metroid Fusion)",
+            ),
+            (
+                "nds",
+                "Nintendo DS",
+                "NDS",
+                "#4A90E2",
+                "rgba(74, 144, 226, 0.2)",
+                "nds",
+                "Portátil de duas telas da Nintendo (Pokémon Platinum, Mario Kart DS)",
+            ),
+            (
+                "switch",
+                "Nintendo Switch",
+                "Switch",
+                "#E60012",
+                "rgba(230, 0, 18, 0.2)",
+                "switch",
+                "Emulação e ports da geração híbrida da Nintendo",
+            ),
+            (
+                "ps3",
+                "PlayStation 3",
+                "PS3",
+                "#1A5276",
+                "rgba(26, 82, 118, 0.2)",
+                "ps3",
+                "Emulação HD da Sony com RPCS3",
+            ),
+            (
+                "genesis",
+                "Sega Genesis / Mega Drive",
+                "Genesis",
+                "#1E824C",
+                "rgba(30, 130, 76, 0.2)",
+                "genesis",
+                "Clássicos 16-bit da Sega (Sonic the Hedgehog, Streets of Rage)",
+            ),
+            (
+                "wii",
+                "Nintendo Wii",
+                "Wii",
+                "#00B0FF",
+                "rgba(0, 176, 255, 0.2)",
+                "wii",
+                "Jogos por movimento e clássicos do Wii",
+            ),
+            (
                 "other",
                 "Outra Plataforma",
                 "Custom",
@@ -513,7 +585,25 @@ impl DbState {
         Ok(())
     }
 
-    pub fn delete_platform(&self, id: &str) -> std::result::Result<(), String> {
+    pub fn update_platform(
+        &self,
+        id: &str,
+        name: &str,
+        short_name: &str,
+        brand_color: &str,
+        badge_bg: &str,
+        icon_name: &str,
+        description: &str,
+    ) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE platforms SET name = ?1, short_name = ?2, brand_color = ?3, badge_bg = ?4, icon_name = ?5, description = ?6 WHERE id = ?7",
+            params![name, short_name, brand_color, badge_bg, icon_name, description, id],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_platform(&self, id: &str, reassign_games: bool) -> std::result::Result<(), String> {
         let conn = self.conn.lock().unwrap();
         let mut check_stmt = conn
             .prepare("SELECT COUNT(*) FROM games WHERE original_platform_id = ?1")
@@ -523,10 +613,23 @@ impl DbState {
             .map_err(|e| e.to_string())?;
 
         if count > 0 {
-            return Err(format!(
-                "Não é possível excluir esta plataforma porque existem {} jogo(s) vinculado(s) a ela. Remova os jogos ou apenas desative a plataforma.",
-                count
-            ));
+            if reassign_games && id != "other" {
+                // Ensure "other" platform exists so FK constraint is satisfied
+                let _ = conn.execute(
+                    "INSERT OR IGNORE INTO platforms (id, name, short_name, brand_color, badge_bg, icon_name, description, is_enabled, is_custom)
+                     VALUES ('other', 'Outra Plataforma', 'Custom', '#9C27B0', 'rgba(156, 39, 176, 0.2)', 'wrench', 'Recompilação customizada ou arcade', 1, 0)",
+                    [],
+                );
+                conn.execute(
+                    "UPDATE games SET original_platform_id = 'other' WHERE original_platform_id = ?1",
+                    params![id],
+                ).map_err(|e| e.to_string())?;
+            } else {
+                return Err(format!(
+                    "Esta plataforma possui {} jogo(s) vinculado(s). Remova os jogos ou confirme a transferência deles para 'Outra Plataforma'.",
+                    count
+                ));
+            }
         }
 
         conn.execute("DELETE FROM platforms WHERE id = ?1", params![id])

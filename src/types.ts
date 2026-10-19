@@ -98,6 +98,7 @@ export interface AppSettings {
   reduceMotion: boolean;
   disableGlassmorphism: boolean;
   discordRpcEnabled: boolean;
+  discordClientId?: string;
   steamGridDbApiKey?: string;
   igdbApiKey?: string;
   igdbClientId?: string;
@@ -144,6 +145,7 @@ export interface RaAchievement {
   is_unlocked: boolean;
   date_unlocked?: string;
   hardcore: boolean;
+  achievement_type?: string;
 }
 
 export interface RaGameProgress {
@@ -156,6 +158,13 @@ export interface RaGameProgress {
   unlocked_points: number;
   completion_percentage: number;
   achievements: RaAchievement[];
+  highest_award_kind?: string | null;
+  highest_award_date?: string | null;
+  beaten_date?: string | null;
+  is_beaten?: boolean;
+  is_mastered?: boolean;
+  win_conditions_total?: number;
+  win_conditions_unlocked?: number;
 }
 
 export interface RaUserGame {
@@ -171,6 +180,11 @@ export interface RaUserGame {
   possible_score: number;
   score_achieved: number;
   last_played?: string;
+  highest_award_kind?: string | null;
+  highest_award_date?: string | null;
+  beaten_date?: string | null;
+  is_beaten?: boolean;
+  is_mastered?: boolean;
 }
 
 export interface ScrapedAsset {

@@ -12,6 +12,7 @@ import { ReplayView } from "./components/ReplayView";
 import { BigPictureMode } from "./components/BigPictureMode";
 import { BatchImportModal } from "./components/BatchImportModal";
 import { RetroAchievementsView } from "./components/RetroAchievementsView";
+import { ConsoleIcon } from "./components/ConsoleIcon";
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: "midnight",
@@ -76,7 +77,7 @@ export const App: React.FC = () => {
     root.setAttribute("data-reduce-motion", String(settings.reduceMotion));
     root.setAttribute("data-disable-glass", String(settings.disableGlassmorphism));
 
-    api.setDiscordEnabled(settings.discordRpcEnabled ?? true);
+    api.setDiscordEnabled(settings.discordRpcEnabled ?? true, settings.discordClientId);
   }, [settings]);
 
   const updateSettings = (partial: Partial<AppSettings>) => {
@@ -514,6 +515,95 @@ export const App: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* CONSOLE QUICK FILTER BAR IN EMULATION MODE */}
+            {typeFilter === "emulator" && (
+              <div className="emulation-consoles-bar">
+                <div className="emulation-consoles-header">
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Consoles Emulados
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                      — Filtre seus jogos por console ou importe novas ROMs
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsBatchModalOpen(true)}
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "var(--accent-cyan)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      cursor: "pointer",
+                      background: "rgba(0, 229, 255, 0.08)",
+                      border: "1px solid rgba(0, 229, 255, 0.25)",
+                      padding: "4px 10px",
+                      borderRadius: "6px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <FolderUp size={14} />
+                    <span>Importar ROMs em Lote</span>
+                  </button>
+                </div>
+
+                <div className="emulation-consoles-scroll thin-scrollbar">
+                  {/* Option: Todos os Consoles */}
+                  <button
+                    type="button"
+                    className={`console-quick-pill ${selectedPlatformId === null ? "active" : ""}`}
+                    onClick={() => setSelectedPlatformId(null)}
+                  >
+                    <Layers size={15} />
+                    <span>Todos ({emulatorCount})</span>
+                  </button>
+
+                  {/* Major Consoles with authentic vector icons */}
+                  {platforms
+                    .filter((p) => p.is_enabled && p.id !== "other")
+                    .map((plat) => {
+                      const count = games.filter(
+                        (g) => g.is_emulator && g.original_platform_id === plat.id
+                      ).length;
+                      const isSelected = selectedPlatformId === plat.id;
+
+                      return (
+                        <button
+                          key={plat.id}
+                          type="button"
+                          className={`console-quick-pill ${isSelected ? "active" : ""}`}
+                          onClick={() => setSelectedPlatformId(isSelected ? null : plat.id)}
+                          style={{
+                            borderColor: isSelected ? plat.brand_color : undefined,
+                            boxShadow: isSelected ? `0 0 12px ${plat.brand_color}44` : undefined,
+                          }}
+                          title={`${plat.name} (${count} jogos emulados)`}
+                        >
+                          <ConsoleIcon
+                            platformId={plat.id}
+                            name={plat.name}
+                            size={17}
+                            color={plat.brand_color}
+                          />
+                          <span style={{ fontWeight: isSelected ? 700 : 500 }}>{plat.short_name}</span>
+                          <span
+                            className="console-quick-count"
+                            style={{
+                              color: isSelected ? plat.brand_color : undefined,
+                              background: isSelected ? `${plat.brand_color}22` : undefined,
+                            }}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
 
             {filteredGames.length === 0 ? (
               <div className="empty-library">

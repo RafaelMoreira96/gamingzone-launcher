@@ -10,9 +10,11 @@ import {
   RotateCw,
   Award,
   Settings,
+  Calendar,
+  Star,
 } from "lucide-react";
 import { Game, RaGameProgress, RaUserProfile } from "../types";
-import { api } from "../services/api";
+import { api, formatRaDate } from "../services/api";
 
 interface RetroAchievementsModalProps {
   isOpen: boolean;
@@ -527,6 +529,143 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                 </div>
               </div>
 
+              {/* STATUS DE CONCLUSÃO & REQUISITOS PARA ZERAR */}
+              {(() => {
+                const isMastered =
+                  raProgress.is_mastered ||
+                  (raProgress.total_achievements > 0 &&
+                    raProgress.unlocked_achievements >= raProgress.total_achievements);
+                const isBeaten = raProgress.is_beaten || isMastered;
+                const hasWinConditions = (raProgress.win_conditions_total || 0) > 0;
+                const beatenDate = raProgress.beaten_date || raProgress.highest_award_date;
+
+                return (
+                  <div
+                    style={{
+                      background: isMastered
+                        ? "linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(20, 20, 10, 0.9) 100%)"
+                        : isBeaten
+                        ? "linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(10, 25, 18, 0.9) 100%)"
+                        : "linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)",
+                      border: isMastered
+                        ? "1px solid rgba(255, 184, 0, 0.45)"
+                        : isBeaten
+                        ? "1px solid rgba(74, 222, 128, 0.45)"
+                        : "1px solid rgba(255, 255, 255, 0.1)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "14px 18px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "14px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div
+                        style={{
+                          width: "42px",
+                          height: "42px",
+                          borderRadius: "10px",
+                          background: isMastered
+                            ? "rgba(255, 184, 0, 0.2)"
+                            : isBeaten
+                            ? "rgba(74, 222, 128, 0.2)"
+                            : "rgba(255, 255, 255, 0.05)",
+                          border: isMastered
+                            ? "1px solid #FFB800"
+                            : isBeaten
+                            ? "1px solid #4ade80"
+                            : "1px solid rgba(255, 255, 255, 0.1)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: isMastered ? "#FFB800" : isBeaten ? "#4ade80" : "var(--text-muted)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isMastered ? <Star size={22} /> : isBeaten ? <Trophy size={22} /> : <Award size={22} />}
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              fontSize: "0.92rem",
+                              fontWeight: 800,
+                              color: isMastered ? "#FFD54F" : isBeaten ? "#4ade80" : "#fff",
+                            }}
+                          >
+                            {isMastered
+                              ? "👑 JOGO 100% MASTERIZADO NO RETROACHIEVEMENTS"
+                              : isBeaten
+                              ? "🏆 JOGO ZERADO (BEATEN) NO RETROACHIEVEMENTS"
+                              : "PROGRESSO PARA ZERAR O JOGO"}
+                          </span>
+                          {beatenDate && (
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                fontWeight: 800,
+                                color: "#080a0f",
+                                background: isMastered ? "#FFD54F" : "#4ade80",
+                                padding: "2px 8px",
+                                borderRadius: "999px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Calendar size={12} />
+                              Zerado em: {formatRaDate(beatenDate)}
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ margin: "3px 0 0 0", fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                          {isMastered ? (
+                            <span>Todas as <strong>{raProgress.total_achievements}</strong> conquistas foram conquistadas! O jogo foi 100% dominado.</span>
+                          ) : isBeaten ? (
+                            <span>
+                              ✓ Requisitos de desbloqueio cumpridos:{" "}
+                              {hasWinConditions
+                                ? `Todas as condições de vitória foram concluídas (${raProgress.win_conditions_unlocked}/${raProgress.win_conditions_total} metas de vitória).`
+                                : "Todas as conquistas principais necessárias foram alcançadas."}
+                            </span>
+                          ) : (
+                            <span>
+                              Requisitos para zerar:{" "}
+                              {hasWinConditions ? (
+                                <>
+                                  Desbloqueie todas as <strong>{raProgress.win_conditions_total}</strong> conquistas com a tag <em>🏆 Condição de Vitória (Requisito para Zerar)</em> ({raProgress.win_conditions_unlocked || 0}/{raProgress.win_conditions_total}).
+                                </>
+                              ) : (
+                                "Desbloqueie os objetivos principais ou alcance 100% do set de conquistas."
+                              )}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block" }}>
+                        Condições de Vitória
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "1rem",
+                          fontWeight: 800,
+                          color: isBeaten ? "#4ade80" : "var(--accent-cyan)",
+                        }}
+                      >
+                        {hasWinConditions
+                          ? `${raProgress.win_conditions_unlocked || 0} / ${raProgress.win_conditions_total}`
+                          : `${raProgress.unlocked_achievements} / ${raProgress.total_achievements}`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* SEARCH & FILTER CONTROLS */}
               <div
                 style={{
@@ -614,111 +753,157 @@ export const RetroAchievementsModal: React.FC<RetroAchievementsModalProps> = ({
                 }}
               >
                 {filteredAchievements.length > 0 ? (
-                  filteredAchievements.map((ach) => (
-                    <div
-                      key={ach.id}
-                      className="achievement-card"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "16px",
-                        padding: "12px 18px",
-                        background: ach.is_unlocked ? "rgba(255, 153, 0, 0.08)" : "var(--bg-surface)",
-                        border: ach.is_unlocked
-                          ? "1px solid rgba(255, 153, 0, 0.35)"
-                          : "1px solid var(--border-subtle)",
-                        borderRadius: "var(--radius-md)",
-                        transition: "all 0.2s ease",
-                        opacity: ach.is_unlocked ? 1 : 0.7,
-                      }}
-                    >
-                      {/* BADGE IMAGE */}
-                      <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0 }}>
-                        <img
-                          src={ach.badge_url}
-                          alt={ach.title}
-                          style={{
-                            width: "48px",
-                            height: "48px",
-                            borderRadius: "8px",
-                            objectFit: "cover",
-                            filter: ach.is_unlocked ? "none" : "grayscale(90%) contrast(80%)",
-                            border: ach.is_unlocked ? "2px solid #FF9900" : "1px solid rgba(255, 255, 255, 0.15)",
-                            boxShadow: ach.is_unlocked ? "0 0 10px rgba(255, 153, 0, 0.3)" : "none",
-                          }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "https://media.retroachievements.org/Badge/00000.png";
-                          }}
-                        />
-                        {!ach.is_unlocked && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              background: "rgba(0, 0, 0, 0.45)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderRadius: "8px",
-                            }}
-                          >
-                            <Lock size={16} color="rgba(255, 255, 255, 0.6)" />
-                          </div>
-                        )}
-                      </div>
+                  filteredAchievements.map((ach) => {
+                    const isWinCond =
+                      ach.achievement_type === "win_condition" ||
+                      ach.achievement_type?.toLowerCase().includes("win");
 
-                      {/* TEXT CONTENT */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <h4
+                    return (
+                      <div
+                        key={ach.id}
+                        className="achievement-card"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "16px",
+                          padding: "12px 18px",
+                          background: ach.is_unlocked
+                            ? isWinCond
+                              ? "linear-gradient(135deg, rgba(74, 222, 128, 0.1) 0%, rgba(13, 17, 26, 0.9) 100%)"
+                              : "rgba(255, 153, 0, 0.08)"
+                            : "var(--bg-surface)",
+                          border: ach.is_unlocked
+                            ? isWinCond
+                              ? "1px solid rgba(74, 222, 128, 0.45)"
+                              : "1px solid rgba(255, 153, 0, 0.35)"
+                            : isWinCond
+                            ? "1px dashed rgba(74, 222, 128, 0.35)"
+                            : "1px solid var(--border-subtle)",
+                          borderRadius: "var(--radius-md)",
+                          transition: "all 0.2s ease",
+                          opacity: ach.is_unlocked ? 1 : 0.7,
+                        }}
+                      >
+                        {/* BADGE IMAGE */}
+                        <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0 }}>
+                          <img
+                            src={ach.badge_url}
+                            alt={ach.title}
                             style={{
-                              fontSize: "0.95rem",
-                              fontWeight: 700,
-                              color: ach.is_unlocked ? "#fff" : "var(--text-secondary)",
-                              margin: 0,
+                              width: "48px",
+                              height: "48px",
+                              borderRadius: "8px",
+                              objectFit: "cover",
+                              filter: ach.is_unlocked ? "none" : "grayscale(90%) contrast(80%)",
+                              border: ach.is_unlocked
+                                ? isWinCond
+                                  ? "2px solid #4ade80"
+                                  : "2px solid #FF9900"
+                                : "1px solid rgba(255, 255, 255, 0.15)",
+                              boxShadow: ach.is_unlocked
+                                ? isWinCond
+                                  ? "0 0 10px rgba(74, 222, 128, 0.35)"
+                                  : "0 0 10px rgba(255, 153, 0, 0.3)"
+                                : "none",
                             }}
-                          >
-                            {ach.title}
-                          </h4>
-                          {ach.is_unlocked && <CheckCircle2 size={15} color="var(--accent-green)" />}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                "https://media.retroachievements.org/Badge/00000.png";
+                            }}
+                          />
+                          {!ach.is_unlocked && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "rgba(0, 0, 0, 0.45)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <Lock size={16} color="rgba(255, 255, 255, 0.6)" />
+                            </div>
+                          )}
                         </div>
-                        <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "3px 0 0 0" }}>
-                          {ach.description}
-                        </p>
-                        {ach.date_unlocked && (
+
+                        {/* TEXT CONTENT */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* WIN CONDITION BADGE */}
+                          {isWinCond && (
+                            <div style={{ marginBottom: "4px" }}>
+                              <span
+                                style={{
+                                  fontSize: "0.68rem",
+                                  fontWeight: 800,
+                                  color: ach.is_unlocked ? "#4ade80" : "#86efac",
+                                  background: ach.is_unlocked ? "rgba(74, 222, 128, 0.18)" : "rgba(74, 222, 128, 0.08)",
+                                  border: "1px solid rgba(74, 222, 128, 0.4)",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                }}
+                              >
+                                <Trophy size={11} />
+                                🏆 Requisito para Zerar (Condição de Vitória)
+                              </span>
+                            </div>
+                          )}
+
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <h4
+                              style={{
+                                fontSize: "0.95rem",
+                                fontWeight: 700,
+                                color: ach.is_unlocked ? "#fff" : "var(--text-secondary)",
+                                margin: 0,
+                              }}
+                            >
+                              {ach.title}
+                            </h4>
+                            {ach.is_unlocked && <CheckCircle2 size={15} color={isWinCond ? "#4ade80" : "var(--accent-green)"} />}
+                          </div>
+                          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "3px 0 0 0" }}>
+                            {ach.description}
+                          </p>
+                          {ach.date_unlocked && (
+                            <span
+                              style={{
+                                fontSize: "0.72rem",
+                                color: isWinCond ? "#4ade80" : "var(--accent-green)",
+                                marginTop: "4px",
+                                display: "inline-block",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Desbloqueada em {formatRaDate(ach.date_unlocked)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* POINTS BADGE */}
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <span
                             style={{
-                              fontSize: "0.7rem",
-                              color: "var(--accent-green)",
-                              marginTop: "4px",
+                              fontSize: "0.85rem",
+                              fontWeight: 800,
+                              color: ach.is_unlocked ? "#FFB84D" : "var(--text-muted)",
+                              background: ach.is_unlocked ? "rgba(255, 153, 0, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                              padding: "4px 10px",
+                              borderRadius: "6px",
+                              border: ach.is_unlocked ? "1px solid rgba(255, 153, 0, 0.3)" : "none",
                               display: "inline-block",
                             }}
                           >
-                            Desbloqueada em {new Date(ach.date_unlocked).toLocaleString("pt-BR")}
+                            {ach.points} pts
                           </span>
-                        )}
+                        </div>
                       </div>
-
-                      {/* POINTS BADGE */}
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <span
-                          style={{
-                            fontSize: "0.85rem",
-                            fontWeight: 800,
-                            color: ach.is_unlocked ? "#FFB84D" : "var(--text-muted)",
-                            background: ach.is_unlocked ? "rgba(255, 153, 0, 0.15)" : "rgba(255, 255, 255, 0.05)",
-                            padding: "4px 10px",
-                            borderRadius: "6px",
-                            border: ach.is_unlocked ? "1px solid rgba(255, 153, 0, 0.3)" : "none",
-                            display: "inline-block",
-                          }}
-                        >
-                          {ach.points} pts
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div
                     style={{

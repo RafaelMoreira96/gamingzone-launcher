@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Game, GameDetails, RaGameProgress, SaveBackup, PlayStatusType } from "../types";
 import { api, formatPlaytime, formatImageUrl } from "../services/api";
+import { ConsoleIcon } from "./ConsoleIcon";
 import { AutoScraperModal } from "./AutoScraperModal";
 
 interface GameDetailsModalProps {
@@ -380,8 +381,17 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         backgroundColor: "rgba(10, 14, 22, 0.9)",
                         borderColor: platformColor,
                         color: platformColor,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
                       }}
                     >
+                      <ConsoleIcon
+                        platformId={currentGame.original_platform_id}
+                        name={currentGame.platform_name}
+                        size={16}
+                        color={platformColor}
+                      />
                       <span>{currentGame.platform_name || currentGame.original_platform_id.toUpperCase()}</span>
                       <span className="recomp-arrow">→</span>
                       <span className="recomp-target">

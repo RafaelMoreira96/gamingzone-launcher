@@ -18,6 +18,7 @@ import { Game, Platform, ControllerPromptType } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
 import { ReplayView } from "./ReplayView";
 import { RetroAchievementsView } from "./RetroAchievementsView";
+import { ConsoleIcon } from "./ConsoleIcon";
 
 interface BigPictureModeProps {
   games: Game[];
@@ -716,9 +717,11 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                       borderColor: selectedPlatformId === plat.id ? plat.brand_color : undefined,
                     }}
                   >
-                    <span
-                      className="platform-badge-dot"
-                      style={{ backgroundColor: plat.brand_color }}
+                    <ConsoleIcon
+                      platformId={plat.id}
+                      name={plat.name}
+                      size={15}
+                      color={plat.brand_color}
                     />
                     <span>{plat.short_name}</span>
                   </button>
@@ -990,8 +993,9 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                         </div>
                       )}
 
-                      <div className="shelf-card-badge" style={{ color: gColor }}>
-                        {game.platform_name || game.original_platform_id.toUpperCase()}
+                      <div className="shelf-card-badge" style={{ color: gColor, display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                        <ConsoleIcon platformId={game.original_platform_id} name={game.platform_name} size={13} color={gColor} />
+                        <span>{game.platform_name || game.original_platform_id.toUpperCase()}</span>
                       </div>
 
                       <div

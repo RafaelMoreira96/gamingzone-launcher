@@ -102,6 +102,116 @@ let mockPlatforms: Platform[] = [
     is_enabled: true,
     is_custom: false,
   },
+  {
+    id: "dreamcast",
+    name: "Sega Dreamcast",
+    short_name: "Dreamcast",
+    brand_color: "#FF6600",
+    badge_bg: "rgba(255, 102, 0, 0.2)",
+    icon_name: "swatch-book",
+    description: "Ports nativos de arcade e Dreamcast",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "snes",
+    name: "Super Nintendo",
+    short_name: "SNES",
+    brand_color: "#7B52AB",
+    badge_bg: "rgba(123, 82, 171, 0.2)",
+    icon_name: "snes",
+    description: "Emulação e recomps de clássicos 16-bit",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "nes",
+    name: "Nintendo Entertainment System",
+    short_name: "NES",
+    brand_color: "#D32F2F",
+    badge_bg: "rgba(211, 47, 47, 0.2)",
+    icon_name: "nes",
+    description: "Clássicos 8-bit da era Famicom/NES",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "gba",
+    name: "Game Boy Advance",
+    short_name: "GBA",
+    brand_color: "#5B32A3",
+    badge_bg: "rgba(91, 50, 163, 0.2)",
+    icon_name: "gba",
+    description: "Portátil 32-bit da Nintendo",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "nds",
+    name: "Nintendo DS",
+    short_name: "NDS",
+    brand_color: "#4A90E2",
+    badge_bg: "rgba(74, 144, 226, 0.2)",
+    icon_name: "nds",
+    description: "Portátil de duas telas da Nintendo",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "switch",
+    name: "Nintendo Switch",
+    short_name: "Switch",
+    brand_color: "#E60012",
+    badge_bg: "rgba(230, 0, 18, 0.2)",
+    icon_name: "switch",
+    description: "Emulação e ports da geração híbrida da Nintendo",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "ps3",
+    name: "PlayStation 3",
+    short_name: "PS3",
+    brand_color: "#1A5276",
+    badge_bg: "rgba(26, 82, 118, 0.2)",
+    icon_name: "ps3",
+    description: "Emulação HD da Sony com RPCS3",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "genesis",
+    name: "Sega Genesis / Mega Drive",
+    short_name: "Genesis",
+    brand_color: "#1E824C",
+    badge_bg: "rgba(30, 130, 76, 0.2)",
+    icon_name: "genesis",
+    description: "Clássicos 16-bit da Sega",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "wii",
+    name: "Nintendo Wii",
+    short_name: "Wii",
+    brand_color: "#00B0FF",
+    badge_bg: "rgba(0, 176, 255, 0.2)",
+    icon_name: "wii",
+    description: "Jogos por movimento e clássicos do Wii",
+    is_enabled: true,
+    is_custom: false,
+  },
+  {
+    id: "other",
+    name: "Outra Plataforma",
+    short_name: "Custom",
+    brand_color: "#9C27B0",
+    badge_bg: "rgba(156, 39, 176, 0.2)",
+    icon_name: "wrench",
+    description: "Recompilação customizada ou arcade",
+    is_enabled: true,
+    is_custom: false,
+  },
 ];
 
 let mockBackups: Record<string, SaveBackup[]> = {
@@ -399,13 +509,51 @@ export const api = {
     }
   },
 
-  async deletePlatform(id: string): Promise<void> {
+  async updatePlatform(payload: {
+    id: string;
+    name: string;
+    short_name: string;
+    brand_color: string;
+    icon_name: string;
+    description: string;
+  }): Promise<void> {
     if (isTauri()) {
-      return await invoke<void>("delete_platform", { id });
+      return await invoke<void>("update_platform", {
+        id: payload.id,
+        name: payload.name,
+        shortName: payload.short_name,
+        brandColor: payload.brand_color,
+        iconName: payload.icon_name,
+        description: payload.description,
+      });
+    }
+    const plat = mockPlatforms.find((p) => p.id === payload.id);
+    if (plat) {
+      plat.name = payload.name;
+      plat.short_name = payload.short_name;
+      plat.brand_color = payload.brand_color;
+      plat.badge_bg = `${payload.brand_color}33`;
+      plat.icon_name = payload.icon_name;
+      plat.description = payload.description;
+    }
+  },
+
+  async deletePlatform(id: string, reassignGames: boolean = false): Promise<void> {
+    if (isTauri()) {
+      return await invoke<void>("delete_platform", { id, reassignGames });
     }
     const hasGames = mockGames.some((g) => g.original_platform_id === id);
     if (hasGames) {
-      throw new Error("Não é possível excluir esta plataforma pois existem jogos vinculados a ela.");
+      if (reassignGames && id !== "other") {
+        mockGames.forEach((g) => {
+          if (g.original_platform_id === id) {
+            g.original_platform_id = "other";
+            g.platform_name = "Outra Plataforma";
+          }
+        });
+      } else {
+        throw new Error("Esta plataforma possui jogos vinculados a ela. Transfira para 'Outra Plataforma' para poder remover.");
+      }
     }
     mockPlatforms = mockPlatforms.filter((p) => p.id !== id);
   },
@@ -853,14 +1001,21 @@ export const api = {
     ];
   },
 
-  async setDiscordEnabled(enabled: boolean): Promise<void> {
+  async setDiscordEnabled(enabled: boolean, clientId?: string): Promise<void> {
     if (isTauri()) {
       try {
-        await invoke<void>("set_discord_enabled", { enabled });
+        await invoke<void>("set_discord_enabled", { enabled, clientId });
       } catch (e) {
         console.warn("Discord RPC toggle failed:", e);
       }
     }
+  },
+
+  async testDiscordConnection(clientId?: string): Promise<string> {
+    if (isTauri()) {
+      return await invoke<string>("test_discord_connection", { clientId });
+    }
+    return "Modo Web: O aplicativo desktop do Discord precisa ser testado com o launcher nativo executando.";
   },
 
   async getRaProfile(username: string, apiKey: string): Promise<RaUserProfile> {
@@ -982,8 +1137,53 @@ export const api = {
 
     if (user && key) {
       const gamesMap = new Map<number, RaUserGame>();
+      const awardsMap = new Map<number, { awardKind?: string; awardDate?: string; recentDate?: string }>();
 
-      // 1. Fetch recently played games
+      // 1. First fetch completion progress to collect official HighestAwardKind and HighestAwardDate
+      const completionEndpoints = [
+        `https://retroachievements.org/API/API_GetUserCompletionProgress.php?u=${encodeURIComponent(user)}&y=${encodeURIComponent(key)}&c=500`,
+        `/ra-api/API/API_GetUserCompletionProgress.php?u=${encodeURIComponent(user)}&y=${encodeURIComponent(key)}&c=500`,
+      ];
+      let rawCompletionResults: any[] = [];
+      for (const ep of completionEndpoints) {
+        try {
+          const resp = await fetch(ep);
+          if (resp.ok) {
+            const data = await resp.json();
+            const results = data.Results || data.results;
+            if (Array.isArray(results) && results.length > 0) {
+              rawCompletionResults = results;
+              for (const item of results) {
+                const gid = Number(item.GameID);
+                if (!gid) continue;
+                const awardKind = item.HighestAwardKind || item.highestAwardKind || undefined;
+                const awardDate = item.HighestAwardDate || item.highestAwardDate || undefined;
+                const recentDate = item.MostRecentAwardedDate || item.LastPlayed || undefined;
+                awardsMap.set(gid, { awardKind, awardDate, recentDate });
+              }
+              break;
+            }
+          }
+        } catch (e) {
+          console.warn("Live fetch for completion progress failed:", e);
+        }
+      }
+
+      const calcStatus = (numAch: number, maxPoss: number, lastPlayed?: string, awardKind?: string, awardDate?: string) => {
+        const is100 = maxPoss > 0 && numAch >= maxPoss;
+        const hasBeatenAward = awardKind
+          ? ["beaten", "mastered", "completed"].some((w) => awardKind.toLowerCase().includes(w))
+          : false;
+        const hasMasteredAward = awardKind
+          ? ["mastered", "completed"].some((w) => awardKind.toLowerCase().includes(w))
+          : false;
+        const isBeaten = hasBeatenAward || is100;
+        const isMastered = hasMasteredAward || is100;
+        const beatenDate = awardDate || (isBeaten ? lastPlayed : undefined);
+        return { isBeaten, isMastered, beatenDate };
+      };
+
+      // 2. Fetch recently played games
       const recentEndpoints = [
         `https://retroachievements.org/API/API_GetUserRecentlyPlayedGames.php?u=${encodeURIComponent(user)}&y=${encodeURIComponent(key)}&c=50`,
         `/ra-api/API/API_GetUserRecentlyPlayedGames.php?u=${encodeURIComponent(user)}&y=${encodeURIComponent(key)}&c=50`,
@@ -1005,6 +1205,20 @@ export const api = {
                   Number(item.ScoreAchievedHardcore) || 0,
                   Number(item.ScoreAchieved) || 0
                 );
+                const maxPossible = Number(item.NumPossibleAchievements) || 0;
+                let lastPlayed = item.LastPlayed || undefined;
+                const awardInfo = awardsMap.get(gid);
+                if (!lastPlayed && awardInfo?.recentDate) {
+                  lastPlayed = awardInfo.recentDate;
+                }
+                const { isBeaten, isMastered, beatenDate } = calcStatus(
+                  numAchieved,
+                  maxPossible,
+                  lastPlayed,
+                  awardInfo?.awardKind,
+                  awardInfo?.awardDate
+                );
+
                 gamesMap.set(gid, {
                   game_id: gid,
                   title: item.Title || "Jogo Retrô",
@@ -1026,10 +1240,15 @@ export const api = {
                       : `https://media.retroachievements.org${item.ImageBoxArt}`
                     : undefined,
                   num_achieved: numAchieved,
-                  num_possible_achievements: Number(item.NumPossibleAchievements) || 0,
+                  num_possible_achievements: maxPossible,
                   possible_score: Number(item.PossibleScore) || 0,
                   score_achieved: scoreAchieved,
-                  last_played: item.LastPlayed || undefined,
+                  last_played: lastPlayed,
+                  highest_award_kind: awardInfo?.awardKind,
+                  highest_award_date: awardInfo?.awardDate,
+                  beaten_date: beatenDate,
+                  is_beaten: isBeaten,
+                  is_mastered: isMastered,
                 });
               }
               break;
@@ -1040,58 +1259,56 @@ export const api = {
         }
       }
 
-      // 2. Fetch completion progress to include all account games
-      const completionEndpoints = [
-        `https://retroachievements.org/API/API_GetUserCompletionProgress.php?u=${encodeURIComponent(user)}&y=${encodeURIComponent(key)}&c=500`,
-        `/ra-api/API/API_GetUserCompletionProgress.php?u=${encodeURIComponent(user)}&y=${encodeURIComponent(key)}&c=500`,
-      ];
-      for (const ep of completionEndpoints) {
-        try {
-          const resp = await fetch(ep);
-          if (resp.ok) {
-            const data = await resp.json();
-            const results = data.Results || data.results;
-            if (Array.isArray(results) && results.length > 0) {
-              for (const item of results) {
-                const gid = Number(item.GameID);
-                if (!gid || gamesMap.has(gid)) continue;
-                const numAchieved = Math.max(
-                  Number(item.NumAwardedHardcore) || 0,
-                  Number(item.NumAwarded) || 0
-                );
-                const scoreAchieved = Math.max(
-                  Number(item.ScoreAchievedHardcore) || 0,
-                  Number(item.ScoreAchieved) || 0
-                );
-                gamesMap.set(gid, {
-                  game_id: gid,
-                  title: item.Title || "Jogo Retrô",
-                  console_name: item.ConsoleName || "Console",
-                  console_id: Number(item.ConsoleID) || undefined,
-                  image_icon: item.ImageIcon
-                    ? item.ImageIcon.startsWith("http")
-                      ? item.ImageIcon
-                      : `https://media.retroachievements.org${item.ImageIcon}`
-                    : undefined,
-                  image_title: undefined,
-                  image_box_art: item.ImageBoxArt
-                    ? item.ImageBoxArt.startsWith("http")
-                      ? item.ImageBoxArt
-                      : `https://media.retroachievements.org${item.ImageBoxArt}`
-                    : undefined,
-                  num_achieved: numAchieved,
-                  num_possible_achievements: Number(item.MaxPossibleAchievements || item.MaxPossible || item.NumPossibleAchievements) || 0,
-                  possible_score: Number(item.PossibleScore) || 0,
-                  score_achieved: scoreAchieved,
-                  last_played: item.LastPlayed || item.MostRecentAwardedDate || undefined,
-                });
-              }
-              break;
-            }
-          }
-        } catch (e) {
-          console.warn("Live fetch for completion progress failed:", e);
-        }
+      // 3. Add remaining games from completion progress
+      for (const item of rawCompletionResults) {
+        const gid = Number(item.GameID);
+        if (!gid || gamesMap.has(gid)) continue;
+        const numAchieved = Math.max(
+          Number(item.NumAwardedHardcore) || 0,
+          Number(item.NumAwarded) || 0
+        );
+        const scoreAchieved = Math.max(
+          Number(item.ScoreAchievedHardcore) || 0,
+          Number(item.ScoreAchieved) || 0
+        );
+        const maxPossible = Number(item.MaxPossibleAchievements || item.MaxPossible || item.NumPossibleAchievements) || 0;
+        const lastPlayed = item.LastPlayed || item.MostRecentAwardedDate || undefined;
+        const awardInfo = awardsMap.get(gid);
+        const { isBeaten, isMastered, beatenDate } = calcStatus(
+          numAchieved,
+          maxPossible,
+          lastPlayed,
+          awardInfo?.awardKind,
+          awardInfo?.awardDate
+        );
+
+        gamesMap.set(gid, {
+          game_id: gid,
+          title: item.Title || "Jogo Retrô",
+          console_name: item.ConsoleName || "Console",
+          console_id: Number(item.ConsoleID) || undefined,
+          image_icon: item.ImageIcon
+            ? item.ImageIcon.startsWith("http")
+              ? item.ImageIcon
+              : `https://media.retroachievements.org${item.ImageIcon}`
+            : undefined,
+          image_title: undefined,
+          image_box_art: item.ImageBoxArt
+            ? item.ImageBoxArt.startsWith("http")
+              ? item.ImageBoxArt
+              : `https://media.retroachievements.org${item.ImageBoxArt}`
+            : undefined,
+          num_achieved: numAchieved,
+          num_possible_achievements: maxPossible,
+          possible_score: Number(item.PossibleScore) || 0,
+          score_achieved: scoreAchieved,
+          last_played: lastPlayed,
+          highest_award_kind: awardInfo?.awardKind,
+          highest_award_date: awardInfo?.awardDate,
+          beaten_date: beatenDate,
+          is_beaten: isBeaten,
+          is_mastered: isMastered,
+        });
       }
 
       if (gamesMap.size > 0) {
@@ -1113,6 +1330,8 @@ export const api = {
         possible_score: 600,
         score_achieved: 195,
         last_played: "2026-10-18 16:20:00",
+        is_beaten: false,
+        is_mastered: false,
       },
       {
         game_id: 9989,
@@ -1126,6 +1345,8 @@ export const api = {
         possible_score: 1100,
         score_achieved: 410,
         last_played: "2026-10-18 15:40:00",
+        is_beaten: false,
+        is_mastered: false,
       },
       {
         game_id: 2276,
@@ -1139,6 +1360,8 @@ export const api = {
         possible_score: 100,
         score_achieved: 25,
         last_played: "2026-10-18 12:00:00",
+        is_beaten: false,
+        is_mastered: false,
       },
       {
         game_id: 11257,
@@ -1152,6 +1375,8 @@ export const api = {
         possible_score: 750,
         score_achieved: 260,
         last_played: "2026-10-17 21:10:00",
+        is_beaten: false,
+        is_mastered: false,
       },
       {
         game_id: 2854,
@@ -1160,11 +1385,16 @@ export const api = {
         console_id: 17,
         image_icon: "https://media.retroachievements.org/Images/002854.png",
         image_box_art: "https://media.retroachievements.org/Images/045819.png",
-        num_achieved: 15,
+        num_achieved: 35,
         num_possible_achievements: 45,
         possible_score: 500,
-        score_achieved: 180,
+        score_achieved: 380,
         last_played: "2026-10-17 18:30:00",
+        highest_award_kind: "beaten",
+        highest_award_date: "2026-10-17 18:30:00",
+        beaten_date: "2026-10-17 18:30:00",
+        is_beaten: true,
+        is_mastered: false,
       },
       {
         game_id: 11293,
@@ -1178,6 +1408,11 @@ export const api = {
         possible_score: 400,
         score_achieved: 400,
         last_played: "2026-10-16 19:45:00",
+        highest_award_kind: "mastered",
+        highest_award_date: "2026-10-16 19:45:00",
+        beaten_date: "2026-10-16 19:45:00",
+        is_beaten: true,
+        is_mastered: true,
       },
       {
         game_id: 1,
@@ -1191,6 +1426,8 @@ export const api = {
         possible_score: 300,
         score_achieved: 150,
         last_played: "2026-10-15 14:15:00",
+        is_beaten: false,
+        is_mastered: false,
       },
     ];
   },
@@ -1239,6 +1476,10 @@ export const api = {
               let totalPts = 0;
               let unlockedPts = 0;
               let unlockedCount = 0;
+              let winTotal = 0;
+              let winUnlocked = 0;
+              let latestWinDate: string | undefined = undefined;
+              let latestAnyDate: string | undefined = undefined;
 
               for (const key of Object.keys(data.Achievements)) {
                 const item = data.Achievements[key];
@@ -1252,9 +1493,26 @@ export const api = {
                   item.DateAwarded ||
                   undefined;
                 const isUnlocked = Boolean(dateUnlocked);
+                const unlockStr = typeof dateUnlocked === "string" ? dateUnlocked : undefined;
+
+                const rawType = (item.type || item.Type || "").toString().trim().toLowerCase();
+                const isWinCond = rawType === "win_condition" || rawType === "win condition" || rawType === "win_conditions";
+                if (isWinCond) {
+                  winTotal++;
+                  if (isUnlocked) {
+                    winUnlocked++;
+                    if (unlockStr && (!latestWinDate || unlockStr > latestWinDate)) {
+                      latestWinDate = unlockStr;
+                    }
+                  }
+                }
+
                 if (isUnlocked) {
                   unlockedCount++;
                   unlockedPts += pts;
+                  if (unlockStr && (!latestAnyDate || unlockStr > latestAnyDate)) {
+                    latestAnyDate = unlockStr;
+                  }
                 }
 
                 const badge = item.BadgeName || "00000";
@@ -1269,8 +1527,9 @@ export const api = {
                   points: pts,
                   badge_url: badgeUrl,
                   is_unlocked: isUnlocked,
-                  date_unlocked: typeof dateUnlocked === "string" ? dateUnlocked : undefined,
+                  date_unlocked: unlockStr,
                   hardcore: Boolean(item.DateEarnedHardcore || item.DateAwardedHardcore),
+                  achievement_type: rawType || undefined,
                 });
               }
 
@@ -1285,6 +1544,22 @@ export const api = {
                 unlockedCount = apiUnlocked;
               }
 
+              const rawAwardKind: string | undefined = data.HighestAwardKind || data.highestAwardKind || undefined;
+              const rawAwardDate: string | undefined = data.HighestAwardDate || data.highestAwardDate || undefined;
+
+              const hasAwardBeaten = rawAwardKind
+                ? ["beaten", "mastered", "completed"].some((w) => rawAwardKind.toLowerCase().includes(w))
+                : false;
+              const hasAwardMastered = rawAwardKind
+                ? ["mastered", "completed"].some((w) => rawAwardKind.toLowerCase().includes(w))
+                : false;
+              const is100 = totalCount > 0 && unlockedCount >= totalCount;
+              const wonAllWins = winTotal > 0 && winUnlocked >= winTotal;
+
+              const isBeaten = hasAwardBeaten || is100 || wonAllWins;
+              const isMastered = hasAwardMastered || is100;
+              const beatenDate = rawAwardDate || (wonAllWins ? latestWinDate : undefined) || (isBeaten ? latestAnyDate : undefined);
+
               return {
                 game_id: gameId,
                 game_title: data.Title || payload.title,
@@ -1295,6 +1570,13 @@ export const api = {
                 unlocked_points: unlockedPts,
                 completion_percentage: totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0,
                 achievements: achList,
+                highest_award_kind: rawAwardKind,
+                highest_award_date: rawAwardDate,
+                beaten_date: beatenDate,
+                is_beaten: isBeaten,
+                is_mastered: isMastered,
+                win_conditions_total: winTotal,
+                win_conditions_unlocked: winUnlocked,
               };
             }
           }
@@ -1493,6 +1775,24 @@ export const formatImageUrl = (url?: string | null): string => {
     }
   }
   return trimmed;
+};
+
+export const formatRaDate = (dateStr?: string | null): string => {
+  if (!dateStr || dateStr.trim() === "" || dateStr === "null") return "";
+  try {
+    const cleaned = dateStr.replace(" ", "T");
+    const d = new Date(cleaned);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return dateStr;
+  }
 };
 
 function resolveRaGameId(title: string, _platformId?: string): number {
@@ -1761,6 +2061,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-18 15:30:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 1102,
@@ -1771,6 +2072,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-18 16:15:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 1103,
@@ -1781,6 +2083,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-18 16:40:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 1104,
@@ -1791,6 +2094,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-18 17:10:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 1105,
@@ -1800,15 +2104,17 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/125805.png",
         is_unlocked: false,
         hardcore: true,
+        achievement_type: "missable",
       },
       {
         id: 1106,
         title: "Titan of War",
-        description: "Finalizar a campanha inteira na dificuldade Modo Titã.",
+        description: "Finalizar a campanha inteira na dificuldade Modo Titã (Condição de Vitória).",
         points: 50,
         badge_url: "https://media.retroachievements.org/Badge/125806.png",
         is_unlocked: false,
         hardcore: true,
+        achievement_type: "win_condition",
       },
     ];
 
@@ -1826,6 +2132,10 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       unlocked_points: unlPts,
       completion_percentage: (unlCount / achs.length) * 100,
       achievements: achs,
+      is_beaten: false,
+      is_mastered: false,
+      win_conditions_total: 1,
+      win_conditions_unlocked: 0,
     };
   }
 
@@ -1840,6 +2150,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-17 19:20:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 7002,
@@ -1850,6 +2161,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-17 19:45:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 7003,
@@ -1860,6 +2172,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-17 20:30:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 7004,
@@ -1869,6 +2182,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/001203.png",
         is_unlocked: false,
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 7005,
@@ -1878,6 +2192,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/001204.png",
         is_unlocked: false,
         hardcore: true,
+        achievement_type: "missable",
       },
       {
         id: 7006,
@@ -1887,6 +2202,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/001205.png",
         is_unlocked: false,
         hardcore: true,
+        achievement_type: "win_condition",
       },
     ];
 
@@ -1904,6 +2220,10 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       unlocked_points: unlPts,
       completion_percentage: (unlCount / achs.length) * 100,
       achievements: achs,
+      is_beaten: false,
+      is_mastered: false,
+      win_conditions_total: 1,
+      win_conditions_unlocked: 0,
     };
   }
 
@@ -1918,6 +2238,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-16 18:30:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 8002,
@@ -1928,6 +2249,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-16 18:50:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 8003,
@@ -1938,6 +2260,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-16 19:15:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 8004,
@@ -1948,6 +2271,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-16 19:45:00",
         hardcore: true,
+        achievement_type: "win_condition",
       },
     ];
 
@@ -1965,6 +2289,13 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       unlocked_points: unlPts,
       completion_percentage: 100,
       achievements: achs,
+      highest_award_kind: "mastered",
+      highest_award_date: "2026-10-16 19:45:00",
+      beaten_date: "2026-10-16 19:45:00",
+      is_beaten: true,
+      is_mastered: true,
+      win_conditions_total: 1,
+      win_conditions_unlocked: 1,
     };
   }
 
@@ -1979,6 +2310,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-15 13:40:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 9002,
@@ -1989,6 +2321,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-15 14:05:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 9003,
@@ -1999,6 +2332,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         is_unlocked: true,
         date_unlocked: "2026-10-15 14:15:00",
         hardcore: true,
+        achievement_type: "progression",
       },
       {
         id: 9004,
@@ -2008,6 +2342,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
         badge_url: "https://media.retroachievements.org/Badge/000004.png",
         is_unlocked: false,
         hardcore: true,
+        achievement_type: "win_condition",
       },
     ];
 
@@ -2025,6 +2360,10 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       unlocked_points: unlPts,
       completion_percentage: (unlCount / achs.length) * 100,
       achievements: achs,
+      is_beaten: false,
+      is_mastered: false,
+      win_conditions_total: 1,
+      win_conditions_unlocked: 0,
     };
   }
 
@@ -2039,6 +2378,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       is_unlocked: true,
       date_unlocked: "2026-10-18 10:00:00",
       hardcore: true,
+      achievement_type: "progression",
     },
     {
       id: 5002,
@@ -2049,6 +2389,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       is_unlocked: true,
       date_unlocked: "2026-10-18 11:30:00",
       hardcore: true,
+      achievement_type: "progression",
     },
     {
       id: 5003,
@@ -2058,6 +2399,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       badge_url: "https://media.retroachievements.org/Badge/00003.png",
       is_unlocked: false,
       hardcore: true,
+      achievement_type: "missable",
     },
     {
       id: 5004,
@@ -2067,6 +2409,7 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
       badge_url: "https://media.retroachievements.org/Badge/00004.png",
       is_unlocked: false,
       hardcore: true,
+      achievement_type: "win_condition",
     },
   ];
 
@@ -2084,5 +2427,9 @@ function getCuratedRealAchievements(title: string, platformId: string, gameId: n
     unlocked_points: unlPts,
     completion_percentage: (unlCount / achs.length) * 100,
     achievements: achs,
+    is_beaten: false,
+    is_mastered: false,
+    win_conditions_total: 1,
+    win_conditions_unlocked: 0,
   };
 }

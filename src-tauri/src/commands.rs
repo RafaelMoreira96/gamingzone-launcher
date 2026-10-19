@@ -57,11 +57,29 @@ pub fn toggle_platform(
 }
 
 #[tauri::command]
+pub fn update_platform(
+    state: State<'_, AppServices>,
+    id: String,
+    name: String,
+    short_name: String,
+    brand_color: String,
+    icon_name: String,
+    description: String,
+) -> Result<(), String> {
+    let badge_bg = format!("{}33", brand_color);
+    state
+        .db
+        .update_platform(&id, &name, &short_name, &brand_color, &badge_bg, &icon_name, &description)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn delete_platform(
     state: State<'_, AppServices>,
     id: String,
+    reassign_games: Option<bool>,
 ) -> Result<(), String> {
-    state.db.delete_platform(&id)
+    state.db.delete_platform(&id, reassign_games.unwrap_or(false))
 }
 
 #[tauri::command]
@@ -317,10 +335,10 @@ pub fn pick_directory() -> Result<Option<String>, String> {
 #[tauri::command]
 pub fn pick_image_file() -> Result<Option<String>, String> {
     let file = rfd::FileDialog::new()
-        .set_title("Selecione a Imagem da Capa")
+        .set_title("Selecione a Imagem ou Ícone")
         .add_filter(
-            "Imagens (*.png, *.jpg, *.jpeg, *.webp)",
-            &["png", "jpg", "jpeg", "webp"],
+            "Imagens & Ícones (*.png, *.jpg, *.jpeg, *.webp, *.ico, *.svg)",
+            &["png", "jpg", "jpeg", "webp", "ico", "svg"],
         )
         .pick_file();
 
@@ -363,11 +381,30 @@ pub fn search_igdb_games(
 pub fn set_discord_enabled(
     state: State<'_, AppServices>,
     enabled: bool,
+    client_id: Option<String>,
 ) -> Result<(), String> {
     if let Some(discord) = &state.discord {
         discord.set_enabled(enabled);
+        if let Some(cid) = client_id {
+            discord.set_custom_client_id(Some(cid));
+        }
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn test_discord_connection(
+    state: State<'_, AppServices>,
+    client_id: Option<String>,
+) -> Result<String, String> {
+    if let Some(discord) = &state.discord {
+        if let Some(cid) = client_id {
+            discord.set_custom_client_id(Some(cid));
+        }
+        discord.test_connection()
+    } else {
+        Err("Serviço Discord RPC não disponível.".to_string())
+    }
 }
 
 #[tauri::command]

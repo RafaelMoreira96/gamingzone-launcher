@@ -143,7 +143,7 @@ impl ProcessManager {
                 .map(|d| d.as_secs() as i64)
                 .unwrap_or(0);
             let p_name = game.platform_name.as_deref().unwrap_or("Retro");
-            discord.set_playing_game(&game.title, p_name, game.is_emulator, now_unix);
+            discord.set_playing_game(&game.title, p_name, &game.original_platform_id, game.is_emulator, now_unix);
         }
 
         // Save active process

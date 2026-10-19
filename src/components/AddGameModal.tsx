@@ -3,6 +3,7 @@ import { X, FolderOpen, Image as ImageIcon, Sparkles, Gamepad, Cpu, FolderUp } f
 import { Platform } from "../types";
 import { api } from "../services/api";
 import { AutoScraperModal } from "./AutoScraperModal";
+import { ConsoleIcon } from "./ConsoleIcon";
 
 interface AddGameModalProps {
   platforms: Platform[];
@@ -254,12 +255,11 @@ export const AddGameModal: React.FC<AddGameModalProps> = ({
                           borderColor: isSelected ? plat.brand_color : undefined,
                         }}
                       >
-                        <span
-                          className="platform-badge-dot"
-                          style={{
-                            backgroundColor: plat.brand_color,
-                            color: plat.brand_color,
-                          }}
+                        <ConsoleIcon
+                          platformId={plat.id}
+                          name={plat.name}
+                          size={18}
+                          color={plat.brand_color}
                         />
                         <span style={{ color: isSelected ? "#fff" : "var(--text-secondary)" }}>
                           {plat.name}

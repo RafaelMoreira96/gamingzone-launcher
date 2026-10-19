@@ -1,6 +1,7 @@
 import React from "react";
-import { Gamepad2, Disc, Cpu, Box, Smartphone, Layers, CircleDot, Star, Trophy, BarChart3 } from "lucide-react";
+import { Gamepad2, Cpu, Layers, Star, Trophy, BarChart3 } from "lucide-react";
 import { Platform, PlayStatusType } from "../types";
+import { ConsoleIcon } from "./ConsoleIcon";
 
 interface SidebarProps {
   platforms: Platform[];
@@ -43,25 +44,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectStatusFilter,
   completedCount,
 }) => {
-  const getPlatformIcon = (iconName: string) => {
-    switch (iconName) {
-      case "gamepad":
-        return <Gamepad2 size={16} />;
-      case "disc":
-        return <Disc size={16} />;
-      case "cpu":
-        return <Cpu size={16} />;
-      case "box":
-        return <Box size={16} />;
-      case "smartphone":
-        return <Smartphone size={16} />;
-      case "circle-dot":
-        return <CircleDot size={16} />;
-      default:
-        return <Layers size={16} />;
-    }
-  };
-
   const handleSelectAllGames = () => {
     onSelectView("library");
     onSelectTypeFilter("all");
@@ -274,19 +256,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
               key={plat.id}
               className={`platform-pill ${currentView === "library" && isSelected ? "active" : ""}`}
               onClick={() => handleSelectPlatform(plat.id)}
+              title={`${plat.name} (${count} jogos)`}
             >
               <div className="platform-pill-content">
-                <span
-                  className="platform-badge-dot"
+                <ConsoleIcon
+                  platformId={plat.id}
+                  name={plat.name}
+                  size={18}
+                  color={plat.brand_color}
                   style={{
-                    backgroundColor: plat.brand_color,
-                    color: plat.brand_color,
+                    filter: isSelected ? `drop-shadow(0 0 6px ${plat.brand_color})` : "none",
+                    transition: "all 0.2s ease",
                   }}
                 />
-                {getPlatformIcon(plat.icon_name)}
-                <span>{plat.short_name}</span>
+                <span style={{ fontWeight: isSelected ? 700 : 500 }}>{plat.short_name}</span>
               </div>
-              <span className="platform-count">{count}</span>
+              <span className="platform-count" style={{ color: isSelected ? plat.brand_color : undefined }}>
+                {count}
+              </span>
             </button>
           );
         })}

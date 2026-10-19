@@ -2,6 +2,7 @@ import React from "react";
 import { Play, Square, Clock, Gamepad2, Cpu, Star, Trophy } from "lucide-react";
 import { Game } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
+import { ConsoleIcon } from "./ConsoleIcon";
 
 interface GameCardProps {
   game: Game;
@@ -156,8 +157,12 @@ export const GameCard: React.FC<GameCardProps> = ({
                 backgroundColor: "rgba(10, 14, 22, 0.88)",
                 borderColor: platformColor,
                 color: platformColor,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
               }}
             >
+              <ConsoleIcon platformId={game.original_platform_id} name={game.platform_name} size={13} color={platformColor} />
               <span>{game.platform_name || game.original_platform_id.toUpperCase()}</span>
             </div>
 

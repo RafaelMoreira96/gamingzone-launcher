@@ -551,6 +551,84 @@ button, input, select, textarea {
   box-shadow: 0 0 16px rgba(167, 139, 250, 0.25);
 }
 
+/* Emulation Consoles Quick Bar */
+.emulation-consoles-bar {
+  margin: 0 0 24px 0;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(13, 17, 23, 0.6) 100%);
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeIn 0.25s ease;
+}
+
+.emulation-consoles-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.emulation-consoles-scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.console-quick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.console-quick-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.console-quick-pill.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.console-quick-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.console-icon {
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.console-quick-pill:hover .console-icon {
+  transform: scale(1.12);
+}
+
 /* Big Picture Shelf Card Type Badge */
 .shelf-card-type-badge {
   position: absolute;
@@ -1912,6 +1990,23 @@ html[data-font-size="xlarge"] {
 
 .btn-delete-icon:hover {
   background: rgba(255, 51, 75, 0.15);
+}
+
+.btn-edit-icon {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.btn-edit-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .new-platform-box {

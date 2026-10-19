@@ -19,12 +19,16 @@ import {
   Database,
   Key,
   AlertCircle,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
 import { AppSettings, CardSizeType, FontSizeType, FontFamilyType, Platform, ThemeType, RaUserProfile, ControllerPromptType } from "../types";
 import { api } from "../services/api";
 import { ambientAudio } from "../services/ambientAudio";
+import { ConsoleIcon } from "./ConsoleIcon";
+import { IconPickerModal } from "./IconPickerModal";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -170,13 +174,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  // New Platform Form State
+  // Discord Test State
+  const [discordTesting, setDiscordTesting] = useState(false);
+  const [discordStatus, setDiscordStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestDiscord = async () => {
+    setDiscordTesting(true);
+    setDiscordStatus(null);
+    try {
+      const msg = await api.testDiscordConnection(settings.discordClientId);
+      setDiscordStatus({ success: true, message: msg });
+    } catch (err: any) {
+      setDiscordStatus({
+        success: false,
+        message: err.toString(),
+      });
+    } finally {
+      setDiscordTesting(false);
+    }
+  };
+
+  // Platform Management State
   const [newPlatName, setNewPlatName] = useState("");
   const [newPlatShort, setNewPlatShort] = useState("");
   const [newPlatColor, setNewPlatColor] = useState("#00E5FF");
+  const [newPlatIcon, setNewPlatIcon] = useState("gamepad");
   const [newPlatDesc, setNewPlatDesc] = useState("");
   const [isAddingPlat, setIsAddingPlat] = useState(false);
   const [platError, setPlatError] = useState("");
+
+  // Editing Platform State
+  const [editingPlatId, setEditingPlatId] = useState<string | null>(null);
+  const [editPlatName, setEditPlatName] = useState("");
+  const [editPlatShort, setEditPlatShort] = useState("");
+  const [editPlatColor, setEditPlatColor] = useState("#00E5FF");
+  const [editPlatIcon, setEditPlatIcon] = useState("gamepad");
+  const [editPlatDesc, setEditPlatDesc] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editPlatError, setEditPlatError] = useState("");
+
+  // Icon Picker Modal State
+  const [iconPickerTarget, setIconPickerTarget] = useState<"new" | "edit" | null>(null);
 
   if (!isOpen) return null;
 
@@ -328,13 +366,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleDeletePlatform = async (id: string) => {
-    if (!confirm("Tem certeza que deseja remover esta plataforma?")) return;
+  const handleDeletePlatform = async (plat: Platform) => {
+    if (!confirm(`Tem certeza que deseja excluir o console "${plat.name}" (${plat.short_name}) da biblioteca?`)) return;
     try {
-      await api.deletePlatform(id);
+      await api.deletePlatform(plat.id, false);
       onPlatformsChanged();
     } catch (err: any) {
-      alert("Erro: " + err.toString());
+      const errStr = err.toString();
+      if (errStr.includes("jogo(s) vinculado(s)") || errStr.includes("jogos vinculados")) {
+        const reassign = confirm(
+          `Atenção: Existem jogos cadastrados neste console (${plat.name}).\n\nDeseja transferir esses jogos para "Outra Plataforma" e excluir "${plat.name}" permanentemente?`
+        );
+        if (reassign) {
+          try {
+            await api.deletePlatform(plat.id, true);
+            onPlatformsChanged();
+            return;
+          } catch (e2: any) {
+            alert("Erro ao excluir: " + e2.toString());
+            return;
+          }
+        }
+      } else {
+        alert("Erro ao excluir plataforma: " + errStr);
+      }
+    }
+  };
+
+  const handleStartEditPlatform = (plat: Platform) => {
+    setEditingPlatId(plat.id);
+    setEditPlatName(plat.name);
+    setEditPlatShort(plat.short_name);
+    setEditPlatColor(plat.brand_color);
+    setEditPlatIcon(plat.icon_name || plat.id);
+    setEditPlatDesc(plat.description || "");
+    setEditPlatError("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPlatId(null);
+    setEditPlatError("");
+  };
+
+  const handleSaveEditPlatform = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlatId) return;
+    if (!editPlatName.trim() || !editPlatShort.trim()) {
+      setEditPlatError("Informe o nome e a sigla da plataforma.");
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setEditPlatError("");
+
+    try {
+      await api.updatePlatform({
+        id: editingPlatId,
+        name: editPlatName.trim(),
+        short_name: editPlatShort.trim().toUpperCase(),
+        brand_color: editPlatColor,
+        icon_name: editPlatIcon,
+        description: editPlatDesc.trim(),
+      });
+      setEditingPlatId(null);
+      onPlatformsChanged();
+    } catch (err: any) {
+      setEditPlatError(err.toString());
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -353,13 +452,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         name: newPlatName.trim(),
         short_name: newPlatShort.trim().toUpperCase(),
         brand_color: newPlatColor,
-        icon_name: "gamepad",
-        description: newPlatDesc.trim() || `Recompilações de ${newPlatName.trim()}`,
+        icon_name: newPlatIcon,
+        description: newPlatDesc.trim() || `Recompilações e emulação de ${newPlatName.trim()}`,
       });
 
       setNewPlatName("");
       setNewPlatShort("");
       setNewPlatDesc("");
+      setNewPlatIcon("gamepad");
       onPlatformsChanged();
     } catch (err: any) {
       setPlatError(err.toString());
@@ -673,57 +773,225 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
               </div>
 
-              {/* LISTA DE PLATAFORMAS COM TOGGLE */}
+              {/* LISTA DE PLATAFORMAS COM TOGGLE, EDIÇÃO E EXCLUSÃO */}
               <div className="platforms-manager-list">
-                {allPlatforms.map((plat) => (
-                  <div key={plat.id} className="platform-manager-item">
-                    <div className="platform-item-left">
-                      <span
-                        className="platform-badge-dot"
-                        style={{ backgroundColor: plat.brand_color, color: plat.brand_color }}
-                      />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{plat.name}</div>
-                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                          {plat.description}
-                        </div>
-                      </div>
-                    </div>
+                {allPlatforms.map((plat) => {
+                  const isEditingThis = editingPlatId === plat.id;
 
-                    <div className="platform-item-right">
-                      <div
-                        className="platform-badge-preview"
+                  if (isEditingThis) {
+                    return (
+                      <form
+                        key={plat.id}
+                        onSubmit={handleSaveEditPlatform}
                         style={{
-                          backgroundColor: "rgba(10, 14, 22, 0.85)",
-                          border: `1px solid ${plat.brand_color}`,
-                          color: plat.brand_color,
+                          background: "rgba(0, 229, 255, 0.05)",
+                          border: `1.5px solid ${editPlatColor}`,
+                          borderRadius: "var(--radius-md)",
+                          padding: "16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "12px",
+                          boxShadow: `0 4px 20px ${editPlatColor}25`,
+                          animation: "fadeIn 0.2s ease",
                         }}
                       >
-                        {plat.short_name} → PC
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <Pencil size={16} color={editPlatColor} />
+                            <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#fff" }}>
+                              Editar Console: {plat.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-text"
+                            onClick={handleCancelEdit}
+                            style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+
+                        {editPlatError && (
+                          <div style={{ color: "var(--accent-red)", fontSize: "0.8rem" }}>
+                            {editPlatError}
+                          </div>
+                        )}
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1.4fr auto", gap: "10px", alignItems: "center" }}>
+                          <div>
+                            <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
+                              Nome do Console / Plataforma
+                            </label>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={editPlatName}
+                              onChange={(e) => setEditPlatName(e.target.value)}
+                              placeholder="Nome (ex: PlayStation 2)"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
+                              Sigla (ex: PS2)
+                            </label>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={editPlatShort}
+                              onChange={(e) => setEditPlatShort(e.target.value)}
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
+                              Ícone da Plataforma
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setIconPickerTarget("edit")}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                padding: "7px 12px",
+                                borderRadius: "6px",
+                                background: "rgba(255, 255, 255, 0.05)",
+                                border: "1px solid var(--border-subtle)",
+                                color: "#fff",
+                                cursor: "pointer",
+                                width: "100%",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              <ConsoleIcon iconName={editPlatIcon} size={18} color={editPlatColor} />
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                Trocar Ícone...
+                              </span>
+                            </button>
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
+                              Cor
+                            </label>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <input
+                                type="color"
+                                value={editPlatColor}
+                                onChange={(e) => setEditPlatColor(e.target.value)}
+                                style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  borderRadius: "6px",
+                                  border: "1px solid var(--border-subtle)",
+                                  cursor: "pointer",
+                                  background: "transparent",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
+                            Descrição da Plataforma
+                          </label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Descrição opcional (ex: Jogos clássicos de PS2)"
+                            value={editPlatDesc}
+                            onChange={(e) => setEditPlatDesc(e.target.value)}
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "4px" }}>
+                          <button type="button" className="btn-secondary" onClick={handleCancelEdit}>
+                            Cancelar
+                          </button>
+                          <button type="submit" className="btn-primary" disabled={isSavingEdit}>
+                            <Check size={16} />
+                            <span>{isSavingEdit ? "Salvando..." : "Salvar Alterações"}</span>
+                          </button>
+                        </div>
+                      </form>
+                    );
+                  }
+
+                  return (
+                    <div key={plat.id} className="platform-manager-item">
+                      <div className="platform-item-left">
+                        <ConsoleIcon
+                          platformId={plat.id}
+                          iconName={plat.icon_name}
+                          name={plat.name}
+                          size={22}
+                          color={plat.brand_color}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{plat.name}</div>
+                          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                            {plat.description}
+                          </div>
+                        </div>
                       </div>
 
-                      <label className="switch-toggle">
-                        <input
-                          type="checkbox"
-                          checked={plat.is_enabled}
-                          onChange={() => handleTogglePlatform(plat.id, plat.is_enabled)}
-                        />
-                        <span className="slider-round" />
-                      </label>
+                      <div className="platform-item-right">
+                        <div
+                          className="platform-badge-preview"
+                          style={{
+                            backgroundColor: "rgba(10, 14, 22, 0.85)",
+                            border: `1px solid ${plat.brand_color}`,
+                            color: plat.brand_color,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <ConsoleIcon
+                            platformId={plat.id}
+                            iconName={plat.icon_name}
+                            name={plat.name}
+                            size={14}
+                            color={plat.brand_color}
+                          />
+                          <span>{plat.short_name} → PC</span>
+                        </div>
 
-                      {plat.is_custom && (
+                        <label className="switch-toggle" title={plat.is_enabled ? "Desativar plataforma" : "Ativar plataforma"}>
+                          <input
+                            type="checkbox"
+                            checked={plat.is_enabled}
+                            onChange={() => handleTogglePlatform(plat.id, plat.is_enabled)}
+                          />
+                          <span className="slider-round" />
+                        </label>
+
+                        <button
+                          type="button"
+                          className="btn-edit-icon"
+                          onClick={() => handleStartEditPlatform(plat)}
+                          title="Editar plataforma / console"
+                        >
+                          <Pencil size={15} />
+                        </button>
+
                         <button
                           type="button"
                           className="btn-delete-icon"
-                          onClick={() => handleDeletePlatform(plat.id)}
-                          title="Excluir plataforma personalizada"
+                          onClick={() => handleDeletePlatform(plat)}
+                          title="Excluir plataforma / console da biblioteca"
                         >
                           <Trash2 size={16} />
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* FORMULÁRIO PARA CADASTRAR NOVA PLATAFORMA */}
@@ -739,7 +1007,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div style={{ color: "var(--accent-red)", fontSize: "0.8rem" }}>{platError}</div>
                 )}
 
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1.4fr auto", gap: "10px", alignItems: "center" }}>
                   <div>
                     <input
                       type="text"
@@ -759,6 +1027,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       onChange={(e) => setNewPlatShort(e.target.value)}
                       required
                     />
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setIconPickerTarget("new")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 12px",
+                        borderRadius: "var(--radius-sm)",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid var(--border-subtle)",
+                        color: "#fff",
+                        cursor: "pointer",
+                        width: "100%",
+                        fontSize: "0.8rem",
+                      }}
+                      title="Escolher ícone do console ou imagem do PC"
+                    >
+                      <ConsoleIcon iconName={newPlatIcon} size={18} color={newPlatColor} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        Ícone: {newPlatIcon}
+                      </span>
+                    </button>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <input
@@ -785,7 +1078,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     type="text"
                     className="form-input"
                     style={{ flex: 1 }}
-                    placeholder="Descrição opcional (ex: Ports nativos de Switch)"
+                    placeholder="Descrição opcional (ex: Ports nativos e emulação de Switch)"
                     value={newPlatDesc}
                     onChange={(e) => setNewPlatDesc(e.target.value)}
                   />
@@ -801,26 +1094,143 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* TAB 4: INTEGRAÇÕES & DISCORD */}
           {activeTab === "integrations" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {/* DISCORD RPC SWITCH */}
-              <div className="switch-row">
-                <div className="switch-label-area">
-                  <span className="switch-label">Discord Rich Presence (Status no Perfil)</span>
-                  <span className="switch-desc">
-                    Exibe no seu perfil do Discord o jogo que você está jogando, o console de origem e o tempo decorrido da sessão
-                  </span>
+              {/* DISCORD RPC CARD */}
+              <div
+                style={{
+                  background: "linear-gradient(135deg, rgba(88, 101, 242, 0.09) 0%, rgba(88, 101, 242, 0.03) 100%)",
+                  border: "1px solid rgba(88, 101, 242, 0.35)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        background: "rgba(88, 101, 242, 0.22)",
+                        padding: "10px",
+                        borderRadius: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <MessageSquare size={22} color="#5865F2" />
+                    </div>
+                    <div>
+                      <span style={{ fontWeight: 800, fontSize: "1rem", display: "block", color: "#fff" }}>
+                        Discord Rich Presence (Status no Perfil)
+                      </span>
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                        Exibe no seu perfil do Discord o jogo em execução, console e tempo de partida
+                      </span>
+                    </div>
+                  </div>
+
+                  <label className="switch-toggle">
+                    <input
+                      type="checkbox"
+                      checked={settings.discordRpcEnabled ?? true}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        onUpdateSettings({ discordRpcEnabled: enabled });
+                        api.setDiscordEnabled(enabled, settings.discordClientId);
+                      }}
+                    />
+                    <span className="slider-round" />
+                  </label>
                 </div>
-                <label className="switch-toggle">
+
+                {/* Discord Client ID (Customizable) */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.83rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span>Discord Application Client ID (Opcional):</span>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }}>
+                      Padrão: 475456035851599874
+                    </span>
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={settings.discordRpcEnabled ?? true}
+                    type="text"
+                    className="form-input"
+                    placeholder="Deixe em branco para usar o ID padrão oficial ou insira seu Client ID do Discord..."
+                    value={settings.discordClientId || ""}
                     onChange={(e) => {
-                      const enabled = e.target.checked;
-                      onUpdateSettings({ discordRpcEnabled: enabled });
-                      api.setDiscordEnabled(enabled);
+                      const val = e.target.value;
+                      onUpdateSettings({ discordClientId: val });
+                      api.setDiscordEnabled(settings.discordRpcEnabled ?? true, val);
                     }}
+                    style={{ fontSize: "0.85rem" }}
                   />
-                  <span className="slider-round" />
-                </label>
+                </div>
+
+                {/* TEST BUTTON & FEEDBACK */}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleTestDiscord}
+                    disabled={discordTesting}
+                    style={{
+                      borderColor: "rgba(88, 101, 242, 0.5)",
+                      color: "#858EFA",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      fontSize: "0.85rem",
+                      padding: "8px 16px",
+                    }}
+                  >
+                    <Sparkles size={15} />
+                    <span>{discordTesting ? "Conectando ao Discord..." : "Testar Conexão com Discord"}</span>
+                  </button>
+
+                  {discordStatus && (
+                    <div
+                      style={{
+                        fontSize: "0.82rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        color: discordStatus.success ? "var(--accent-green)" : "#FF5252",
+                      }}
+                    >
+                      {discordStatus.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                      <span>{discordStatus.message}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* IMPORTANT TIPS BOX */}
+                <div
+                  style={{
+                    background: "rgba(0, 0, 0, 0.35)",
+                    border: "1px dashed rgba(88, 101, 242, 0.3)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "12px 14px",
+                    fontSize: "0.78rem",
+                    color: "var(--text-secondary)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: "#858EFA", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <AlertCircle size={14} />
+                    <span>Como garantir que seu status apareça no Discord:</span>
+                  </div>
+                  <div>
+                    1. <strong>O aplicativo Desktop do Discord precisa estar aberto</strong> no seu computador (a versão de navegador web não suporta Rich Presence).
+                  </div>
+                  <div>
+                    2. No Discord, acesse <strong>Configurações de Usuário ⚙️ &gt; Configurações de Atividade &gt; Privacidade da Atividade</strong> e certifique-se de que a opção <strong>"Exibir atividade atual como uma mensagem de status"</strong> está <strong>ATIVADA</strong>.
+                  </div>
+                  <div>
+                    3. Se o seu perfil no Discord estiver definido como <strong>Invisível</strong>, o Discord oculta o jogo em execução para outros usuários.
+                  </div>
+                </div>
               </div>
 
               {/* IGDB INTEGRATION CARD */}
@@ -1456,6 +1866,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* MODAL SELETOR DE ÍCONES DE PLATAFORMA */}
+      <IconPickerModal
+        isOpen={iconPickerTarget !== null}
+        onClose={() => setIconPickerTarget(null)}
+        selectedIcon={iconPickerTarget === "new" ? newPlatIcon : editPlatIcon}
+        onSelectIcon={(icon) => {
+          if (iconPickerTarget === "new") {
+            setNewPlatIcon(icon);
+          } else if (iconPickerTarget === "edit") {
+            setEditPlatIcon(icon);
+          }
+        }}
+        color={iconPickerTarget === "new" ? newPlatColor : editPlatColor}
+        title={
+          iconPickerTarget === "new"
+            ? "Escolher Ícone para Nova Plataforma"
+            : `Escolher Ícone para ${editPlatName || "Console"}`
+        }
+      />
     </div>
   );
 };

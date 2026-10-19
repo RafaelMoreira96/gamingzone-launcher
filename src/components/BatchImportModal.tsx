@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { FolderUp, Folder, FileCode, CheckCircle2, X, AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { Platform } from "../types";
 import { api } from "../services/api";
+import { ConsoleIcon } from "./ConsoleIcon";
 
 interface BatchImportModalProps {
   platforms: Platform[];
@@ -15,8 +16,16 @@ interface BatchImportModalProps {
 const COMMON_EXTENSIONS: Record<string, string[]> = {
   ps2: ["iso", "chd", "cso", "bin", "cue", "gz"],
   ps1: ["chd", "cue", "bin", "iso", "pbp"],
+  ps3: ["iso", "pkg"],
   n64: ["z64", "n64", "v64", "zip"],
   gamecube: ["iso", "rvz", "gcm", "cso"],
+  wii: ["iso", "wbfs", "rvz"],
+  switch: ["nsp", "xci"],
+  snes: ["sfc", "smc", "zip"],
+  nes: ["nes", "zip"],
+  gba: ["gba", "zip"],
+  nds: ["nds", "zip"],
+  genesis: ["md", "bin", "gen", "zip"],
   xbox: ["iso", "xbe"],
   saturn: ["chd", "cue", "bin", "iso"],
   dreamcast: ["chd", "cdi", "gdi", "cue"],
@@ -226,21 +235,58 @@ export const BatchImportModal: React.FC<BatchImportModalProps> = ({
                 </div>
               )}
 
-              {/* PLATFORM SELECTOR */}
+              {/* PLATFORM SELECTOR WITH CONSOLE ICONS */}
               <div className="form-group">
-                <label className="form-label">Plataforma dos Jogos (Console Emulado)</label>
-                <select
-                  className="form-input"
-                  value={selectedPlatformId}
-                  onChange={(e) => handlePlatformChange(e.target.value)}
-                  style={{ cursor: "pointer" }}
+                <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Plataforma dos Jogos (Console Emulado)</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--accent-cyan)", fontWeight: 600 }}>
+                    {platforms.find((p) => p.id === selectedPlatformId)?.name || "Selecione o console"}
+                  </span>
+                </label>
+
+                {/* VISUAL CONSOLE SELECTION GRID */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+                    gap: "8px",
+                    marginBottom: "8px",
+                    maxHeight: "155px",
+                    overflowY: "auto",
+                    padding: "4px",
+                  }}
+                  className="thin-scrollbar"
                 >
-                  {platforms.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.short_name})
-                    </option>
-                  ))}
-                </select>
+                  {platforms.map((p) => {
+                    const isSelected = selectedPlatformId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handlePlatformChange(p.id)}
+                        title={p.name}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "8px 10px",
+                          borderRadius: "8px",
+                          background: isSelected ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
+                          border: `1.5px solid ${isSelected ? p.brand_color : "var(--border-subtle)"}`,
+                          color: isSelected ? "#fff" : "var(--text-secondary)",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          boxShadow: isSelected ? `0 0 10px ${p.brand_color}33` : "none",
+                        }}
+                      >
+                        <ConsoleIcon platformId={p.id} name={p.name} size={18} color={p.brand_color} />
+                        <span style={{ fontSize: "0.8rem", fontWeight: isSelected ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {p.short_name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* EMULATOR EXE */}

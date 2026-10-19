@@ -40,6 +40,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_platforms,
             add_platform,
+            update_platform,
             toggle_platform,
             delete_platform,
             get_games,
@@ -58,6 +59,7 @@ pub fn run() {
             pick_image_file,
             scrape_game_assets,
             set_discord_enabled,
+            test_discord_connection,
             open_folder,
             set_fullscreen,
             ra_get_user_profile,
