@@ -215,7 +215,7 @@ export const NintendoButton: React.FC<NintendoButtonProps> = ({
 
 interface ControllerPromptBadgeProps {
   controllerType: ControllerPromptType;
-  action: "select" | "back" | "details" | "favorite" | "bumperL" | "bumperR";
+  action: "select" | "back" | "details" | "favorite" | "bumperL" | "bumperR" | "triggerL" | "triggerR";
   size?: number;
 }
 
@@ -241,6 +241,10 @@ export const ControllerPromptBadge: React.FC<ControllerPromptBadgeProps> = ({
         return <span className="hint-btn ps-bumper-btn">L1</span>;
       case "bumperR":
         return <span className="hint-btn ps-bumper-btn">R1</span>;
+      case "triggerL":
+        return <span className="hint-btn ps-bumper-btn">L2</span>;
+      case "triggerR":
+        return <span className="hint-btn ps-bumper-btn">R2</span>;
     }
   }
 
@@ -258,6 +262,10 @@ export const ControllerPromptBadge: React.FC<ControllerPromptBadgeProps> = ({
         return <span className="hint-btn nin-bumper-btn">L</span>;
       case "bumperR":
         return <span className="hint-btn nin-bumper-btn">R</span>;
+      case "triggerL":
+        return <span className="hint-btn nin-bumper-btn">ZL</span>;
+      case "triggerR":
+        return <span className="hint-btn nin-bumper-btn">ZR</span>;
     }
   }
 
@@ -275,5 +283,9 @@ export const ControllerPromptBadge: React.FC<ControllerPromptBadgeProps> = ({
       return <span className="hint-btn xbox-bumper-btn">LB</span>;
     case "bumperR":
       return <span className="hint-btn xbox-bumper-btn">RB</span>;
+    case "triggerL":
+      return <span className="hint-btn xbox-bumper-btn">LT</span>;
+    case "triggerR":
+      return <span className="hint-btn xbox-bumper-btn">RT</span>;
   }
 };

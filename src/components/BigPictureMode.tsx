@@ -225,6 +225,34 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     }
   }, [filteredGames.length, selectedIndex]);
 
+  // Tab Navigation for Big Picture (L2 / R2 / LT / RT / ZL / ZR / PageUp / PageDown)
+  const cycleTab = (direction: number) => {
+    const tabs: ("library" | "replay" | "achievements")[] = ["library", "replay", "achievements"];
+    const currentIdx = tabs.indexOf(activeTab);
+    let nextIdx = currentIdx + direction;
+    if (nextIdx < 0) nextIdx = tabs.length - 1;
+    if (nextIdx >= tabs.length) nextIdx = 0;
+    const target = tabs[nextIdx];
+    playSound("select");
+    if (target === "achievements") {
+      setAchievementsTargetGame(filteredGames[selectedIndex] || null);
+    }
+    setActiveTab(target);
+  };
+
+  // Platform cycling (LB / RB / D-Pad Up / Down)
+  const cyclePlatform = (direction: number) => {
+    const enabledPlatforms = platforms.filter((p) => p.is_enabled);
+    const platformOptions: (string | null)[] = [null, ...enabledPlatforms.map((p) => p.id)];
+    const currentIndex = platformOptions.indexOf(selectedPlatformId);
+    let nextIndex = currentIndex + direction;
+    if (nextIndex < 0) nextIndex = platformOptions.length - 1;
+    if (nextIndex >= platformOptions.length) nextIndex = 0;
+
+    setSelectedPlatformId(platformOptions[nextIndex]);
+    setSelectedIndex(0);
+  };
+
   // Digital Clock Updater
   useEffect(() => {
     const updateTime = () => {
@@ -297,11 +325,26 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           const btnY = activePad.buttons[3]?.pressed;
           const btnLB = activePad.buttons[4]?.pressed;
           const btnRB = activePad.buttons[5]?.pressed;
+          const btnLT = Boolean(
+            activePad.buttons[6]?.pressed ||
+            (typeof activePad.buttons[6]?.value === "number" && activePad.buttons[6].value > 0.4)
+          );
+          const btnRT = Boolean(
+            activePad.buttons[7]?.pressed ||
+            (typeof activePad.buttons[7]?.value === "number" && activePad.buttons[7].value > 0.4)
+          );
           const btnBack = activePad.buttons[8]?.pressed;
           const btnStart = activePad.buttons[9]?.pressed;
           const btnGuide = activePad.buttons[16]?.pressed;
 
-          if (activeTab === "library") {
+          // L2 / R2 (or LT / RT / ZL / ZR) Primary View Navigation (Works across all tabs)
+          if (btnLT) {
+            lastButtonPress.current = now;
+            cycleTab(-1);
+          } else if (btnRT) {
+            lastButtonPress.current = now;
+            cycleTab(1);
+          } else if (activeTab === "library") {
             if (dpadLeft) {
               lastButtonPress.current = now;
               playSound("move");
@@ -410,6 +453,34 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         return;
       }
 
+      // L2 / R2 Keyboard Equivalents (Tab Navigation)
+      if (e.key === "PageUp" || e.key === "[" || e.key === "{") {
+        e.preventDefault();
+        cycleTab(-1);
+        return;
+      }
+      if (e.key === "PageDown" || e.key === "]" || e.key === "}") {
+        e.preventDefault();
+        cycleTab(1);
+        return;
+      }
+      if (e.key === "1") {
+        playSound("select");
+        setActiveTab("library");
+        return;
+      }
+      if (e.key === "2") {
+        playSound("select");
+        setActiveTab("replay");
+        return;
+      }
+      if (e.key === "3") {
+        playSound("select");
+        setAchievementsTargetGame(filteredGames[selectedIndex] || null);
+        setActiveTab("achievements");
+        return;
+      }
+
       if (e.key === "Escape") {
         playSound("back");
         if (activeTab !== "library") {
@@ -506,18 +577,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     searchQuery,
   ]);
 
-  const cyclePlatform = (direction: number) => {
-    const enabledPlatforms = platforms.filter((p) => p.is_enabled);
-    const platformOptions: (string | null)[] = [null, ...enabledPlatforms.map((p) => p.id)];
-    const currentIndex = platformOptions.indexOf(selectedPlatformId);
-    let nextIndex = currentIndex + direction;
-    if (nextIndex < 0) nextIndex = platformOptions.length - 1;
-    if (nextIndex >= platformOptions.length) nextIndex = 0;
-
-    setSelectedPlatformId(platformOptions[nextIndex]);
-    setSelectedIndex(0);
-  };
-
   const selectedGame = filteredGames[selectedIndex];
   const platformColor = selectedGame?.platform_brand_color || "#00E5FF";
 
@@ -556,8 +615,17 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             <span>GAMINGZONE</span>
           </div>
 
-          {/* Primary View Navigation Tabs */}
-          <nav className="hud-nav-tabs">
+          {/* Primary View Navigation Tabs with L2 / R2 Prompts */}
+          <nav className="hud-nav-tabs" aria-label="Navegação Principal">
+            <button
+              type="button"
+              className="hud-tab-trigger-hint left"
+              onClick={() => cycleTab(-1)}
+              title="Aba Anterior (L2 / LT / ZL / PageUp / [)"
+            >
+              <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={17} />
+            </button>
+
             <button
               className={`hud-nav-tab ${activeTab === "library" ? "active" : ""}`}
               onClick={() => {
@@ -588,6 +656,15 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             >
               <Trophy size={17} />
               <span>Conquistas</span>
+            </button>
+
+            <button
+              type="button"
+              className="hud-tab-trigger-hint right"
+              onClick={() => cycleTab(1)}
+              title="Próxima Aba (R2 / RT / ZR / PageDown / ])"
+            >
+              <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={17} />
             </button>
           </nav>
         </div>
@@ -1148,6 +1225,13 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         {activeTab === "library" ? (
           <>
             <div className="gamepad-hint-item">
+              <span style={{ display: "inline-flex", gap: "4px" }}>
+                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
+                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
+              </span>
+              <span>Mudar Aba</span>
+            </div>
+            <div className="gamepad-hint-item">
               <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
               <span>Iniciar</span>
             </div>
@@ -1184,6 +1268,13 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           </>
         ) : (
           <>
+            <div className="gamepad-hint-item">
+              <span style={{ display: "inline-flex", gap: "4px" }}>
+                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
+                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
+              </span>
+              <span>Mudar Aba</span>
+            </div>
             <div className="gamepad-hint-item">
               <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
               <span className="hint-btn">ESC</span>
