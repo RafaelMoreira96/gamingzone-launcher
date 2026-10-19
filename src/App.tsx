@@ -296,6 +296,7 @@ export const App: React.FC = () => {
           onStopGame={(g) => handleStop(g)}
           onExitBigPicture={() => handleToggleBigPicture(false)}
           controllerType={settings.controllerType}
+          theme={settings.theme}
           onToggleFavorite={handleToggleFavorite}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onOpenAddGame={() => setIsAddModalOpen(true)}

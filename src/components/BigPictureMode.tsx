@@ -13,13 +13,92 @@ import {
   Plus,
   Search,
   TrendingUp,
+  Sparkles,
 } from "lucide-react";
-import { Game, Platform, ControllerPromptType } from "../types";
+import { Game, Platform, ControllerPromptType, ThemeType } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
 import { ReplayView } from "./ReplayView";
 import { RetroAchievementsView } from "./RetroAchievementsView";
 import { ConsoleIcon } from "./ConsoleIcon";
 import { ControllerPromptBadge } from "./ControllerButton";
+
+export const THEME_METADATA: Record<
+  ThemeType,
+  { name: string; label: string; accentColor: string; desc: string }
+> = {
+  midnight: {
+    name: "Midnight Cyan",
+    label: "Midnight",
+    accentColor: "#00E5FF",
+    desc: "Obsidian com neon ciano",
+  },
+  cyberpunk: {
+    name: "Cyberpunk 2077",
+    label: "Cyberpunk",
+    accentColor: "#FCEE0A",
+    desc: "Amarelo Night City e neon futurista",
+  },
+  "retro-arcade": {
+    name: "Retro Arcade 8-Bit",
+    label: "Retro Arcade",
+    accentColor: "#FFE600",
+    desc: "Nostalgia fliperama arcade",
+  },
+  synthwave: {
+    name: "Synthwave Outrun",
+    label: "Synthwave",
+    accentColor: "#FF2A85",
+    desc: "Estética anos 80 e neon magenta",
+  },
+  playstation: {
+    name: "PlayStation Heritage",
+    label: "PlayStation",
+    accentColor: "#006FCD",
+    desc: "Azul de console clássico PlayStation",
+  },
+  gameboy: {
+    name: "Game Boy Classic",
+    label: "Game Boy",
+    accentColor: "#9BBC0F",
+    desc: "Monocromático dot-matrix LCD",
+  },
+  famicom: {
+    name: "Famicom & Nintendo",
+    label: "Famicom",
+    accentColor: "#E52521",
+    desc: "Vermelho e dourado clássico Famicom",
+  },
+  pipboy: {
+    name: "Fallout Pip-Boy",
+    label: "Pip-Boy",
+    accentColor: "#FFB000",
+    desc: "Terminal CRT fósforo âmbar",
+  },
+  "cyber-violet": {
+    name: "Cyber Violet",
+    label: "Cyber Violet",
+    accentColor: "#B347FF",
+    desc: "Púrpura e violeta elétrico",
+  },
+  emerald: {
+    name: "Emerald Matrix",
+    label: "Emerald",
+    accentColor: "#00E676",
+    desc: "Verde esmeralda cyber matrix",
+  },
+  crimson: {
+    name: "Crimson Blood",
+    label: "Crimson",
+    accentColor: "#FF2A55",
+    desc: "Charcoal escuro e vermelho rubi",
+  },
+  "high-contrast": {
+    name: "OLED High Contrast",
+    label: "OLED",
+    accentColor: "#00FFFF",
+    desc: "Preto puro OLED e ciano",
+  },
+};
 
 interface BigPictureModeProps {
   games: Game[];
@@ -28,6 +107,7 @@ interface BigPictureModeProps {
   onStopGame: (game: Game) => void;
   onExitBigPicture: () => void;
   controllerType?: ControllerPromptType;
+  theme?: ThemeType;
   onToggleFavorite?: (game: Game) => void;
   onOpenSettings?: () => void;
   onOpenAddGame?: () => void;
@@ -90,6 +170,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   onStopGame,
   onExitBigPicture,
   controllerType = "xbox",
+  theme = "midnight",
   onToggleFavorite,
   onOpenSettings,
   onOpenAddGame,
@@ -98,6 +179,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   raUsername,
   raApiKey,
 }) => {
+  const activeTheme = THEME_METADATA[theme] || THEME_METADATA.midnight;
   const [activeTab, setActiveTab] = useState<"library" | "replay" | "achievements">("library");
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"all" | "recomp" | "emulator">("all");
@@ -112,40 +194,6 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const lastButtonPress = useRef<number>(0);
-
-  // Controller layout mapping
-  const prompts = useMemo(() => {
-    switch (controllerType) {
-      case "playstation":
-        return {
-          select: "✕",
-          back: "○",
-          details: "□",
-          favorite: "△",
-          bumperL: "L1",
-          bumperR: "R1",
-        };
-      case "nintendo":
-        return {
-          select: "B",
-          back: "A",
-          details: "Y",
-          favorite: "X",
-          bumperL: "L",
-          bumperR: "R",
-        };
-      case "xbox":
-      default:
-        return {
-          select: "A",
-          back: "B",
-          details: "X",
-          favorite: "Y",
-          bumperL: "LB",
-          bumperR: "RB",
-        };
-    }
-  }, [controllerType]);
 
   // Counts
   const recompCount = useMemo(() => games.filter((g) => !g.is_emulator).length, [games]);
@@ -474,7 +522,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   const platformColor = selectedGame?.platform_brand_color || "#00E5FF";
 
   return (
-    <div className="big-picture-wrapper">
+    <div className={`big-picture-wrapper theme-${theme}`} data-theme={theme}>
       {/* IMMERSIVE DYNAMIC BACKDROP */}
       <div className="big-picture-backdrop">
         {selectedGame?.banner_url || selectedGame?.cover_url ? (
@@ -484,14 +532,10 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             className="big-picture-backdrop-img"
           />
         ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: "radial-gradient(circle at 50% 30%, #17243c 0%, #060910 80%)",
-            }}
-          />
+          <div className="big-picture-backdrop-placeholder" />
         )}
+        <div className="big-picture-theme-ambient" />
+        <div className="big-picture-theme-spotlight" />
         <div className="big-picture-backdrop-overlay" />
       </div>
 
@@ -506,7 +550,9 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             }}
             title="Ir para Biblioteca"
           >
-            <Tv size={22} color="var(--accent-cyan)" />
+            <div className="hud-logo-icon-box">
+              <Tv size={18} />
+            </div>
             <span>GAMINGZONE</span>
           </div>
 
@@ -603,6 +649,31 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 <span>Configurações</span>
               </button>
             )}
+          </div>
+
+          {/* ACTIVE THEME HIGHLIGHT PILL */}
+          <div
+            className="hud-theme-badge"
+            title={`Tema Desktop Ativo: ${activeTheme.name} (${activeTheme.desc})`}
+            onClick={() => {
+              if (onOpenSettings) {
+                playSound("select");
+                onOpenSettings();
+              }
+            }}
+          >
+            <Sparkles size={13} style={{ color: activeTheme.accentColor }} />
+            <span className="hud-theme-label">Tema:</span>
+            <span className="hud-theme-val" style={{ color: activeTheme.accentColor }}>
+              {activeTheme.label}
+            </span>
+            <span
+              className="hud-theme-dot"
+              style={{
+                backgroundColor: activeTheme.accentColor,
+                boxShadow: `0 0 10px ${activeTheme.accentColor}`,
+              }}
+            />
           </div>
 
           <div className="hud-controller-badge">
@@ -770,13 +841,16 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 <div
                   className="origin-platform-badge"
                   style={{
-                    backgroundColor: "rgba(10, 14, 22, 0.9)",
                     borderColor: platformColor,
                     color: platformColor,
-                    fontSize: "0.85rem",
-                    padding: "6px 12px",
                   }}
                 >
+                  <ConsoleIcon
+                    platformId={selectedGame.original_platform_id}
+                    name={selectedGame.platform_name}
+                    size={16}
+                    color={platformColor}
+                  />
                   <span>
                     {selectedGame.platform_name || selectedGame.original_platform_id.toUpperCase()}
                   </span>
@@ -846,7 +920,23 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 </div>
 
                 {selectedGame.notes && (
-                  <p className="stage-game-notes">{selectedGame.notes}</p>
+                  <div className="stage-game-notes-box">
+                    <div className="stage-notes-icon-bar">
+                      <Sparkles size={14} color="var(--accent-cyan)" />
+                      <span className="stage-notes-label">CONFIGURAÇÕES DE SISTEMA</span>
+                    </div>
+                    <div className="stage-notes-chips">
+                      {selectedGame.notes.split(/[/|,]/).map((chip, idx) => {
+                        const trimmed = chip.trim();
+                        if (!trimmed) return null;
+                        return (
+                          <span key={idx} className="stage-notes-chip">
+                            {trimmed}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
 
                 {/* BIG ACTION BUTTONS */}
@@ -855,10 +945,11 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                     <button
                       className="btn-stop-big"
                       onClick={() => onStopGame(selectedGame)}
-                      style={{ padding: "16px 36px", fontSize: "1.15rem" }}
+                      style={{ padding: "16px 36px", fontSize: "1.1rem" }}
                     >
-                      <Square size={22} fill="currentColor" />
-                      <span>({prompts.select}) ENCERRAR JOGO</span>
+                      <Square size={20} fill="currentColor" />
+                      <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
+                      <span>ENCERRAR JOGO</span>
                     </button>
                   ) : (
                     <button
@@ -866,14 +957,15 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                       onClick={() => onLaunchGame(selectedGame)}
                       style={{ padding: "16px 42px", fontSize: "1.15rem" }}
                     >
-                      <Play size={24} fill="currentColor" />
-                      <span>({prompts.select}) JOGAR AGORA</span>
+                      <Play size={22} fill="currentColor" />
+                      <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
+                      <span>JOGAR AGORA</span>
                     </button>
                   )}
 
                   {onOpenGameDetails && (
                     <button
-                      className="btn-secondary"
+                      className="btn-secondary bp-action-btn"
                       onClick={() => {
                         playSound("select");
                         onOpenGameDetails(selectedGame);
@@ -881,12 +973,13 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                       style={{ padding: "16px 24px", fontSize: "1rem" }}
                       title="Histórico de Sessões, Editar Dados, Trocar Capas via IGDB e Excluir"
                     >
-                      <span>({prompts.details}) Detalhes & Gerenciar</span>
+                      <ControllerPromptBadge controllerType={controllerType} action="details" size={18} />
+                      <span>Detalhes & Gerenciar</span>
                     </button>
                   )}
 
                   <button
-                    className="btn-secondary"
+                    className="btn-secondary bp-action-btn"
                     onClick={() => {
                       playSound("select");
                       setAchievementsTargetGame(selectedGame);
@@ -895,13 +988,13 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                     style={{ padding: "16px 20px", fontSize: "1rem" }}
                     title="Ver Conquistas deste jogo no RetroAchievements"
                   >
-                    <Trophy size={18} color="#FF9900" />
+                    <Trophy size={17} color="#FF9900" />
                     <span>Conquistas</span>
                   </button>
 
                   {onToggleFavorite && (
                     <button
-                      className="btn-secondary"
+                      className={`btn-secondary bp-action-btn ${selectedGame.is_favorite ? "is-fav" : ""}`}
                       onClick={() => onToggleFavorite(selectedGame)}
                       style={{
                         padding: "16px 22px",
@@ -910,9 +1003,10 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                         borderColor: selectedGame.is_favorite ? "#FFB84D" : undefined,
                       }}
                     >
-                      <Star size={18} fill={selectedGame.is_favorite ? "#FFB84D" : "none"} />
+                      <ControllerPromptBadge controllerType={controllerType} action="favorite" size={18} />
+                      <Star size={17} fill={selectedGame.is_favorite ? "#FFB84D" : "none"} color={selectedGame.is_favorite ? "#FFB84D" : "currentColor"} />
                       <span>
-                        ({prompts.favorite}) {selectedGame.is_favorite ? "Favoritado" : "Favoritar"}
+                        {selectedGame.is_favorite ? "Favoritado" : "Favoritar"}
                       </span>
                     </button>
                   )}
@@ -955,7 +1049,9 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                       }}
                       style={{
                         borderColor: isSelected ? gColor : undefined,
-                        boxShadow: isSelected ? `0 0 30px ${gColor}66` : undefined,
+                        boxShadow: isSelected
+                          ? `0 0 0 2px ${gColor}, 0 0 25px ${gColor}99, 0 0 45px var(--accent-cyan-glow)`
+                          : undefined,
                       }}
                     >
                       {game.cover_url ? (
