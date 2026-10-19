@@ -4,7 +4,6 @@ import {
   Square,
   Clock,
   Gamepad2,
-  Tv,
   X,
   Trophy,
   Star,
@@ -15,12 +14,67 @@ import {
   TrendingUp,
   Sparkles,
 } from "lucide-react";
-import { Game, Platform, ControllerPromptType, ThemeType } from "../types";
+import { Game, Platform, ControllerPromptType, ThemeType, BigPictureTheme } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
 import { ReplayView } from "./ReplayView";
 import { RetroAchievementsView } from "./RetroAchievementsView";
 import { ConsoleIcon } from "./ConsoleIcon";
 import { ControllerPromptBadge } from "./ControllerButton";
+
+export const BP_THEMES_METADATA: Record<
+  BigPictureTheme,
+  {
+    id: BigPictureTheme;
+    name: string;
+    brand: string;
+    badgeLabel: string;
+    accentColor: string;
+    icon: string;
+    desc: string;
+    guideName: string;
+  }
+> = {
+  steam: {
+    id: "steam",
+    name: "Steam Big Picture",
+    brand: "Valve • Steam Deck UI",
+    badgeLabel: "Steam Deck",
+    accentColor: "#00E5FF",
+    icon: "steam",
+    desc: "Cartazes verticais cinematográficos, estética obsidian moderna e neon ciano",
+    guideName: "GAMINGZONE DECK",
+  },
+  xbox: {
+    id: "xbox",
+    name: "Xbox Series Dashboard",
+    brand: "Microsoft • Series X|S",
+    badgeLabel: "Xbox Series",
+    accentColor: "#00E676",
+    icon: "xbox",
+    desc: "Tiles quadrados e retangulares com anel verde esmeralda icônico e Xbox Guide",
+    guideName: "XBOX GUIDE",
+  },
+  playstation: {
+    id: "playstation",
+    name: "PlayStation 5 UI",
+    brand: "Sony Interactive",
+    badgeLabel: "PlayStation 5",
+    accentColor: "#00A3FF",
+    icon: "ps1",
+    desc: "Arte de tela cheia dinâmica, cartões compactos e visual cósmico Sony Blue",
+    guideName: "PLAYSTATION HOME",
+  },
+  nintendo: {
+    id: "nintendo",
+    name: "Nintendo Switch Home",
+    brand: "Nintendo • Switch OLED",
+    badgeLabel: "Switch Home",
+    accentColor: "#E60012",
+    icon: "switch",
+    desc: "Fileira de cartuchos 1:1 quadrados, estilo flat limpo, ágil e minimalista",
+    guideName: "NINTENDO SWITCH",
+  },
+};
 
 export const THEME_METADATA: Record<
   ThemeType,
@@ -108,6 +162,8 @@ interface BigPictureModeProps {
   onExitBigPicture: () => void;
   controllerType?: ControllerPromptType;
   theme?: ThemeType;
+  bigPictureTheme?: BigPictureTheme;
+  onUpdateBigPictureTheme?: (t: BigPictureTheme) => void;
   onToggleFavorite?: (game: Game) => void;
   onOpenSettings?: () => void;
   onOpenAddGame?: () => void;
@@ -117,9 +173,9 @@ interface BigPictureModeProps {
   raApiKey?: string;
 }
 
-// Synthesized Audio Context for console UI feedback
+// Synthesized Audio Context for console UI feedback adapted to each console theme
 let audioCtx: AudioContext | null = null;
-const playSound = (type: "move" | "select" | "back") => {
+const playSound = (type: "move" | "select" | "back", bpTheme: BigPictureTheme = "steam") => {
   try {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -135,30 +191,114 @@ const playSound = (type: "move" | "select" | "back") => {
 
     const now = audioCtx.currentTime;
 
-    if (type === "move") {
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(420, now);
-      osc.frequency.exponentialRampToValueAtTime(780, now + 0.04);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-      osc.start(now);
-      osc.stop(now + 0.04);
-    } else if (type === "select") {
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(520, now);
-      osc.frequency.exponentialRampToValueAtTime(1040, now + 0.08);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-      osc.start(now);
-      osc.stop(now + 0.08);
-    } else if (type === "back") {
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(600, now);
-      osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-      osc.start(now);
-      osc.stop(now + 0.05);
+    if (bpTheme === "nintendo") {
+      // Nintendo Switch signature crisp click/pop
+      if (type === "move") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.02);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+        osc.start(now);
+        osc.stop(now + 0.025);
+      } else if (type === "select") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(950, now);
+        osc.frequency.exponentialRampToValueAtTime(1600, now + 0.06);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      } else {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(700, now);
+        osc.frequency.exponentialRampToValueAtTime(350, now + 0.04);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+    } else if (bpTheme === "xbox") {
+      // Xbox Series X deep resonant pulse
+      if (type === "move") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.exponentialRampToValueAtTime(520, now + 0.05);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (type === "select") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(640, now + 0.09);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } else {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.06);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+    } else if (bpTheme === "playstation") {
+      // PS5 ethereal crystal dual-tone
+      if (type === "move") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(580, now);
+        osc.frequency.exponentialRampToValueAtTime(920, now + 0.045);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+        osc.start(now);
+        osc.stop(now + 0.045);
+      } else if (type === "select") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(280, now + 0.05);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    } else {
+      // Steam Big Picture standard
+      if (type === "move") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(780, now + 0.04);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      } else if (type === "select") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(1040, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
     }
   } catch (_) {}
 };
@@ -171,6 +311,8 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   onExitBigPicture,
   controllerType = "xbox",
   theme = "midnight",
+  bigPictureTheme = "steam",
+  onUpdateBigPictureTheme,
   onToggleFavorite,
   onOpenSettings,
   onOpenAddGame,
@@ -179,7 +321,20 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   raUsername,
   raApiKey,
 }) => {
-  const activeTheme = THEME_METADATA[theme] || THEME_METADATA.midnight;
+  const [currentBpTheme, setCurrentBpTheme] = useState<BigPictureTheme>(bigPictureTheme);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [themeModalFocusIndex, setThemeModalFocusIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentBpTheme(bigPictureTheme);
+  }, [bigPictureTheme]);
+
+  const activeBpTheme = BP_THEMES_METADATA[currentBpTheme] || BP_THEMES_METADATA.steam;
+
+  const playThemeSound = (type: "move" | "select" | "back") => {
+    playSound(type, currentBpTheme);
+  };
+
   const [activeTab, setActiveTab] = useState<"library" | "replay" | "achievements">("library");
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"all" | "recomp" | "emulator">("all");
@@ -267,7 +422,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
 
   // Execute Header Action
   const triggerHeaderAction = (action: HeaderActionId) => {
-    playSound("select");
+    playThemeSound("select");
     switch (action) {
       case "search":
         setIsSearchOpen((prev) => {
@@ -289,7 +444,10 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         if (onOpenSettings) onOpenSettings();
         break;
       case "theme":
-        if (onOpenSettings) onOpenSettings();
+        const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
+        const currentIdx = bpThemes.indexOf(currentBpTheme);
+        setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
+        setIsThemeModalOpen(true);
         break;
       case "exit":
         onExitBigPicture();
@@ -465,6 +623,34 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           const btnStart = activePad.buttons[9]?.pressed;
           const btnGuide = activePad.buttons[16]?.pressed;
 
+          // Gamepad Navigation inside Theme Selection Modal
+          if (isThemeModalOpen) {
+            const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
+            if (dpadLeft) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setThemeModalFocusIndex((prev) => Math.max(0, prev - 1));
+            } else if (dpadRight) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setThemeModalFocusIndex((prev) => Math.min(bpThemes.length - 1, prev + 1));
+            } else if (btnA) {
+              lastButtonPress.current = now;
+              const chosen = bpThemes[themeModalFocusIndex];
+              if (chosen) {
+                playSound("select", chosen);
+                setCurrentBpTheme(chosen);
+                if (onUpdateBigPictureTheme) onUpdateBigPictureTheme(chosen);
+              }
+              setIsThemeModalOpen(false);
+            } else if (btnB) {
+              lastButtonPress.current = now;
+              playThemeSound("back");
+              setIsThemeModalOpen(false);
+            }
+            return;
+          }
+
           // L2 / R2 (or LT / RT / ZL / ZR) Primary View Navigation (Works across all tabs)
           if (btnLT) {
             lastButtonPress.current = now;
@@ -625,6 +811,10 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     filterFocusIndex,
     availableHeaderActions,
     filterPills,
+    currentBpTheme,
+    isThemeModalOpen,
+    themeModalFocusIndex,
+    onUpdateBigPictureTheme,
     onToggleFavorite,
     onLaunchGame,
     onStopGame,
@@ -650,6 +840,30 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         } else if (e.key === "ArrowDown") {
           (document.activeElement as HTMLElement)?.blur();
           setFocusZone("shelf");
+        }
+        return;
+      }
+
+      // Keyboard Navigation inside Theme Selection Modal
+      if (isThemeModalOpen) {
+        const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
+        if (e.key === "ArrowLeft") {
+          playThemeSound("move");
+          setThemeModalFocusIndex((prev) => Math.max(0, prev - 1));
+        } else if (e.key === "ArrowRight") {
+          playThemeSound("move");
+          setThemeModalFocusIndex((prev) => Math.min(bpThemes.length - 1, prev + 1));
+        } else if (e.key === "Enter") {
+          const chosen = bpThemes[themeModalFocusIndex];
+          if (chosen) {
+            playSound("select", chosen);
+            setCurrentBpTheme(chosen);
+            if (onUpdateBigPictureTheme) onUpdateBigPictureTheme(chosen);
+          }
+          setIsThemeModalOpen(false);
+        } else if (e.key === "Escape") {
+          playThemeSound("back");
+          setIsThemeModalOpen(false);
         }
         return;
       }
@@ -829,6 +1043,10 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     filterFocusIndex,
     availableHeaderActions,
     filterPills,
+    currentBpTheme,
+    isThemeModalOpen,
+    themeModalFocusIndex,
+    onUpdateBigPictureTheme,
     onToggleFavorite,
     onLaunchGame,
     onStopGame,
@@ -845,7 +1063,11 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   const platformColor = selectedGame?.platform_brand_color || "#00E5FF";
 
   return (
-    <div className={`big-picture-wrapper theme-${theme}`} data-theme={theme}>
+    <div
+      className={`big-picture-wrapper theme-${theme} bp-dashboard-${currentBpTheme}`}
+      data-theme={theme}
+      data-bp-theme={currentBpTheme}
+    >
       {/* IMMERSIVE DYNAMIC BACKDROP */}
       <div className="big-picture-backdrop">
         {selectedGame?.banner_url || selectedGame?.cover_url ? (
@@ -868,15 +1090,22 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           <div
             className="hud-logo-tag"
             onClick={() => {
-              playSound("select");
+              playThemeSound("select");
               setActiveTab("library");
             }}
             title="Ir para Biblioteca"
           >
-            <div className="hud-logo-icon-box">
-              <Tv size={18} />
+            <div
+              className="hud-logo-icon-box"
+              style={{
+                background: activeBpTheme.accentColor,
+                color: "#060910",
+                boxShadow: `0 0 16px ${activeBpTheme.accentColor}66`,
+              }}
+            >
+              <ConsoleIcon iconName={activeBpTheme.icon} size={18} color="#060910" />
             </div>
-            <span>GAMINGZONE</span>
+            <span>{activeBpTheme.guideName}</span>
           </div>
 
           {/* Primary View Navigation Tabs with L2 / R2 Prompts */}
@@ -1024,35 +1253,36 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             )}
           </div>
 
-          {/* ACTIVE THEME HIGHLIGHT PILL */}
+          {/* ACTIVE BIG PICTURE CONSOLE DASHBOARD HIGHLIGHT PILL */}
           <div
-            className={`hud-theme-badge ${
+            className={`hud-theme-badge hud-bp-theme-badge ${
               focusZone === "header" && availableHeaderActions[headerFocusIndex] === "theme"
                 ? "gp-focused"
                 : ""
             }`}
-            title={`Tema Desktop Ativo: ${activeTheme.name} (${activeTheme.desc})`}
+            title={`Tema do Modo Big Picture: ${activeBpTheme.name} (Clique ou aperte A para alterar o estilo da dashboard)`}
             onClick={() => {
-              if (onOpenSettings) {
-                playSound("select");
-                onOpenSettings();
-              }
+              playThemeSound("select");
+              const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
+              const currentIdx = bpThemes.indexOf(currentBpTheme);
+              setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
+              setIsThemeModalOpen(true);
             }}
             onMouseEnter={() => {
               const idx = availableHeaderActions.indexOf("theme");
               if (idx !== -1) setHeaderFocusIndex(idx);
             }}
           >
-            <Sparkles size={13} style={{ color: activeTheme.accentColor }} />
-            <span className="hud-theme-label">Tema:</span>
-            <span className="hud-theme-val" style={{ color: activeTheme.accentColor }}>
-              {activeTheme.label}
+            <ConsoleIcon iconName={activeBpTheme.icon} size={15} color={activeBpTheme.accentColor} />
+            <span className="hud-theme-label">Dashboard:</span>
+            <span className="hud-theme-val" style={{ color: activeBpTheme.accentColor }}>
+              {activeBpTheme.badgeLabel}
             </span>
             <span
               className="hud-theme-dot"
               style={{
-                backgroundColor: activeTheme.accentColor,
-                boxShadow: `0 0 10px ${activeTheme.accentColor}`,
+                backgroundColor: activeBpTheme.accentColor,
+                boxShadow: `0 0 10px ${activeBpTheme.accentColor}`,
               }}
             />
           </div>
@@ -1532,6 +1762,87 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                 })}
               </div>
             </div>
+
+            {/* NINTENDO SWITCH SIGNATURE UTILITY BAR */}
+            {currentBpTheme === "nintendo" && (
+              <div className="switch-utility-bar">
+                <button
+                  type="button"
+                  className="switch-util-btn"
+                  title="Buscar Jogos na Biblioteca"
+                  onClick={() => {
+                    playThemeSound("select");
+                    setIsSearchOpen(true);
+                  }}
+                >
+                  <Search size={20} />
+                  <span className="switch-util-tooltip">Buscar</span>
+                </button>
+                <button
+                  type="button"
+                  className="switch-util-btn"
+                  title="Álbum & Gravações (Replay)"
+                  onClick={() => {
+                    playThemeSound("select");
+                    setActiveTab("replay");
+                  }}
+                >
+                  <Sparkles size={20} />
+                  <span className="switch-util-tooltip">Replay</span>
+                </button>
+                <button
+                  type="button"
+                  className="switch-util-btn"
+                  title="Conquistas (RetroAchievements)"
+                  onClick={() => {
+                    playThemeSound("select");
+                    setActiveTab("achievements");
+                  }}
+                >
+                  <Trophy size={20} />
+                  <span className="switch-util-tooltip">Conquistas</span>
+                </button>
+                <button
+                  type="button"
+                  className="switch-util-btn"
+                  title="Alterar Estilo de Dashboard"
+                  onClick={() => {
+                    playThemeSound("select");
+                    const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
+                    const currentIdx = bpThemes.indexOf(currentBpTheme);
+                    setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
+                    setIsThemeModalOpen(true);
+                  }}
+                >
+                  <ConsoleIcon iconName="switch" size={20} />
+                  <span className="switch-util-tooltip">Temas</span>
+                </button>
+                <button
+                  type="button"
+                  className="switch-util-btn"
+                  title="Configurações do Sistema"
+                  onClick={() => {
+                    playThemeSound("select");
+                    if (onOpenSettings) onOpenSettings();
+                  }}
+                >
+                  <Settings size={20} />
+                  <span className="switch-util-tooltip">Ajustes</span>
+                </button>
+                <button
+                  type="button"
+                  className="switch-util-btn switch-util-power"
+                  title="Sair do Modo Big Picture"
+                  onClick={() => {
+                    playThemeSound("back");
+                    onExitBigPicture();
+                  }}
+                >
+                  <X size={20} />
+                  <span className="switch-util-tooltip">Sair</span>
+                </button>
+              </div>
+            )}
           </main>
         </>
       ) : (
@@ -1677,6 +1988,138 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
           </>
         )}
       </footer>
+
+      {/* BIG PICTURE CONSOLE DASHBOARD THEME SELECTION MODAL */}
+      {isThemeModalOpen && (
+        <div
+          className="bp-theme-modal-backdrop"
+          onClick={() => {
+            playThemeSound("back");
+            setIsThemeModalOpen(false);
+          }}
+        >
+          <div
+            className="bp-theme-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bp-theme-modal-header">
+              <div className="bp-theme-modal-title-row">
+                <div
+                  className="bp-theme-modal-icon-badge"
+                  style={{
+                    background: activeBpTheme.accentColor,
+                    boxShadow: `0 0 20px ${activeBpTheme.accentColor}55`,
+                  }}
+                >
+                  <ConsoleIcon iconName={activeBpTheme.icon} size={22} color="#060910" />
+                </div>
+                <div>
+                  <h2 className="bp-theme-modal-title">ESTILO DE DASHBOARD</h2>
+                  <p className="bp-theme-modal-subtitle">
+                    Personalize o layout dos cartões, atmosfera visual e perfil sonoro como seus consoles favoritos
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="bp-theme-modal-close"
+                onClick={() => {
+                  playThemeSound("back");
+                  setIsThemeModalOpen(false);
+                }}
+                title="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bp-theme-options-grid">
+              {(Object.keys(BP_THEMES_METADATA) as BigPictureTheme[]).map((themeKey, idx) => {
+                const meta = BP_THEMES_METADATA[themeKey];
+                const isSelected = currentBpTheme === themeKey;
+                const isFocused = themeModalFocusIndex === idx;
+
+                return (
+                  <div
+                    key={themeKey}
+                    className={`bp-theme-choice-card ${isSelected ? "selected" : ""} ${
+                      isFocused ? "focused" : ""
+                    }`}
+                    style={
+                      {
+                        "--theme-accent": meta.accentColor,
+                      } as React.CSSProperties
+                    }
+                    onClick={() => {
+                      playSound("select", themeKey);
+                      setCurrentBpTheme(themeKey);
+                      setThemeModalFocusIndex(idx);
+                      if (onUpdateBigPictureTheme) onUpdateBigPictureTheme(themeKey);
+                      setIsThemeModalOpen(false);
+                    }}
+                    onMouseEnter={() => {
+                      playThemeSound("move");
+                      setThemeModalFocusIndex(idx);
+                    }}
+                  >
+                    <div className="bp-theme-choice-top">
+                      <div className="bp-theme-choice-brand-badge" style={{ color: meta.accentColor }}>
+                        <ConsoleIcon iconName={meta.icon} size={14} color={meta.accentColor} />
+                        <span>{meta.brand}</span>
+                      </div>
+                      {isSelected && (
+                        <div className="bp-theme-active-tag" style={{ background: meta.accentColor, color: "#060910" }}>
+                          ATIVO
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bp-theme-choice-visual-preview">
+                      <div className={`bp-preview-box preview-${themeKey}`}>
+                        <div className="bp-preview-mini-banner" />
+                        <div className="bp-preview-mini-cards">
+                          <div className="bp-mini-card mini-card-1" />
+                          <div className="bp-mini-card mini-card-2 active" style={{ borderColor: meta.accentColor }} />
+                          <div className="bp-mini-card mini-card-3" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bp-theme-choice-body">
+                      <h3 className="bp-theme-choice-name">{meta.name}</h3>
+                      <p className="bp-theme-choice-desc">{meta.desc}</p>
+                    </div>
+
+                    <div className="bp-theme-choice-action-bar">
+                      <span className="bp-theme-action-text" style={{ color: meta.accentColor }}>
+                        {isSelected ? "Dashboard em uso" : "Pressione para aplicar"}
+                      </span>
+                      <ControllerPromptBadge controllerType={controllerType} action="select" size={16} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="bp-theme-modal-footer">
+              <div className="gamepad-hint-item">
+                <span className="hint-btn">← →</span>
+                <span>Navegar</span>
+              </div>
+              <div className="gamepad-hint-item">
+                <ControllerPromptBadge controllerType={controllerType} action="select" size={18} />
+                <span className="hint-btn">Enter</span>
+                <span>Selecionar Estilo</span>
+              </div>
+              <div className="gamepad-hint-item">
+                <ControllerPromptBadge controllerType={controllerType} action="back" size={18} />
+                <span className="hint-btn">ESC</span>
+                <span>Fechar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

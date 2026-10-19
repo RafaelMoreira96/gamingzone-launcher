@@ -3772,3 +3772,464 @@ html[data-font-size="xlarge"] {
   position: relative;
   overflow: hidden;
 }
+
+/* ==========================================================================
+   BIG PICTURE CONSOLE DASHBOARD THEMES (STEAM, XBOX, PLAYSTATION, NINTENDO)
+   ========================================================================== */
+
+/* STEAM BIG PICTURE / STEAM DECK UI */
+.bp-dashboard-steam {
+  --bp-accent: #00E5FF;
+  --bp-accent-glow: rgba(0, 229, 255, 0.45);
+}
+
+.bp-dashboard-steam .shelf-card {
+  aspect-ratio: 3 / 4.3;
+  width: 168px;
+  min-width: 168px;
+  border-radius: 14px;
+}
+
+.bp-dashboard-steam .shelf-card.focused {
+  border-color: #00E5FF;
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.55), 0 16px 36px rgba(0, 0, 0, 0.85);
+}
+
+/* XBOX SERIES DASHBOARD UI */
+.bp-dashboard-xbox {
+  --bp-accent: #00E676;
+  --bp-accent-glow: rgba(0, 230, 118, 0.45);
+}
+
+.bp-dashboard-xbox .big-picture-backdrop-overlay {
+  background: radial-gradient(circle at 50% 25%, rgba(0, 230, 118, 0.12) 0%, rgba(8, 18, 12, 0.88) 60%, #060d09 100%);
+}
+
+.bp-dashboard-xbox .shelf-card {
+  aspect-ratio: 1 / 1;
+  width: 185px;
+  min-width: 185px;
+  border-radius: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.12);
+  background: #0e1712;
+}
+
+.bp-dashboard-xbox .shelf-card.focused {
+  border-color: #00E676;
+  border-width: 3.5px;
+  box-shadow: 0 0 38px rgba(0, 230, 118, 0.6), 0 18px 40px rgba(0, 0, 0, 0.9);
+  transform: scale(1.15) translateY(-8px);
+}
+
+.bp-dashboard-xbox .shelf-card.idle-selected {
+  border-color: rgba(0, 230, 118, 0.55);
+}
+
+/* PLAYSTATION 5 UI */
+.bp-dashboard-playstation {
+  --bp-accent: #00A3FF;
+  --bp-accent-glow: rgba(0, 163, 255, 0.45);
+}
+
+.bp-dashboard-playstation .big-picture-backdrop-overlay {
+  background: radial-gradient(circle at 65% 25%, rgba(0, 163, 255, 0.14) 0%, rgba(6, 12, 28, 0.88) 65%, #040814 100%);
+}
+
+.bp-dashboard-playstation .shelf-card {
+  aspect-ratio: 1 / 1.16;
+  width: 156px;
+  min-width: 156px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: #0d1424;
+}
+
+.bp-dashboard-playstation .shelf-card.focused {
+  border-color: #00A3FF;
+  border-width: 3px;
+  box-shadow: 0 0 40px rgba(0, 163, 255, 0.65), 0 18px 42px rgba(0, 0, 0, 0.92);
+  transform: scale(1.18) translateY(-10px);
+}
+
+.bp-dashboard-playstation .shelf-card.idle-selected {
+  border-color: rgba(0, 163, 255, 0.5);
+}
+
+/* NINTENDO SWITCH OLED HOME UI */
+.bp-dashboard-nintendo {
+  --bp-accent: #E60012;
+  --bp-accent-glow: rgba(230, 0, 18, 0.4);
+  background: #191919;
+}
+
+.bp-dashboard-nintendo .big-picture-backdrop-overlay {
+  background: radial-gradient(circle at 50% 25%, rgba(230, 0, 18, 0.08) 0%, rgba(25, 25, 25, 0.92) 58%, #151515 100%);
+}
+
+.bp-dashboard-nintendo .shelf-card {
+  aspect-ratio: 1 / 1;
+  width: 175px;
+  min-width: 175px;
+  border-radius: 10px;
+  border: 3px solid rgba(255, 255, 255, 0.14);
+  background: #242424;
+}
+
+.bp-dashboard-nintendo .shelf-card.focused {
+  border-color: #00D2FF;
+  border-width: 4.5px;
+  box-shadow: 0 0 30px rgba(0, 210, 255, 0.7), 0 16px 36px rgba(0, 0, 0, 0.85);
+  transform: scale(1.18) translateY(-8px);
+}
+
+.bp-dashboard-nintendo .shelf-card.idle-selected {
+  border-color: rgba(0, 210, 255, 0.5);
+  border-width: 3px;
+}
+
+/* NINTENDO SWITCH SIGNATURE CIRCULAR UTILITY BAR */
+.switch-utility-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 12px 24px;
+  margin-top: 4px;
+  animation: fade-in 0.3s ease;
+}
+
+.switch-util-btn {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #282828;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.switch-util-btn:hover {
+  transform: scale(1.18);
+  border-color: #00D2FF;
+  color: #ffffff;
+  background: #333333;
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.5), 0 8px 18px rgba(0, 0, 0, 0.6);
+}
+
+.switch-util-btn.switch-util-power:hover {
+  border-color: #E60012;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(230, 0, 18, 0.5), 0 8px 18px rgba(0, 0, 0, 0.6);
+}
+
+.switch-util-tooltip {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(15, 15, 15, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.switch-util-btn:hover .switch-util-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* BIG PICTURE THEME MODAL */
+.bp-theme-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40000;
+  background: rgba(4, 6, 12, 0.88);
+  backdrop-filter: blur(24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fade-in 0.2s ease-out;
+}
+
+.bp-theme-modal-card {
+  width: 100%;
+  max-width: 1100px;
+  background: linear-gradient(160deg, #131929 0%, #090c14 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 35px 90px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 229, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  animation: fade-in 0.25s ease-out;
+}
+
+.bp-theme-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 20px;
+}
+
+.bp-theme-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.bp-theme-modal-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.bp-theme-modal-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+}
+
+.bp-theme-modal-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.bp-theme-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bp-theme-modal-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.bp-theme-options-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.bp-theme-choice-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  padding: 18px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.bp-theme-choice-card:hover,
+.bp-theme-choice-card.focused {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--theme-accent, #00E5FF);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 25px var(--theme-accent, rgba(0, 229, 255, 0.35));
+}
+
+.bp-theme-choice-card.selected {
+  border-color: var(--theme-accent, #00E5FF);
+  border-width: 2px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(10, 14, 24, 0.8) 100%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 18px var(--theme-accent, rgba(0, 229, 255, 0.25));
+}
+
+.bp-theme-choice-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bp-theme-choice-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bp-theme-active-tag {
+  font-size: 0.62rem;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.bp-theme-choice-visual-preview {
+  height: 90px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.bp-preview-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.bp-preview-mini-banner {
+  width: 100%;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+
+.bp-preview-mini-cards {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bp-mini-card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+/* Previews representing each console's signature shape */
+.preview-steam .bp-mini-card {
+  width: 22px;
+  height: 32px;
+}
+
+.preview-xbox .bp-mini-card {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+.preview-playstation .bp-mini-card {
+  width: 20px;
+  height: 24px;
+  border-radius: 5px;
+}
+
+.preview-nintendo .bp-mini-card {
+  width: 25px;
+  height: 25px;
+  border-radius: 3px;
+}
+
+.bp-mini-card.active {
+  border-width: 2px !important;
+  transform: scale(1.15) translateY(-2px);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.bp-theme-choice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bp-theme-choice-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.bp-theme-choice-desc {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  min-height: 42px;
+}
+
+.bp-theme-choice-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  margin-top: auto;
+}
+
+.bp-theme-action-text {
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.bp-theme-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 18px;
+}
+
+/* Header theme badge styling */
+.hud-bp-theme-badge {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hud-bp-theme-badge:hover,
+.hud-bp-theme-badge.gp-focused {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+

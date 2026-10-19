@@ -89,6 +89,7 @@ export type FontFamilyType =
 export type FontSizeType = 'small' | 'medium' | 'large' | 'xlarge';
 export type CardSizeType = 'compact' | 'normal' | 'spacious';
 export type ControllerPromptType = 'xbox' | 'playstation' | 'nintendo';
+export type BigPictureTheme = 'steam' | 'xbox' | 'playstation' | 'nintendo';
 
 export interface AppSettings {
   theme: ThemeType;
@@ -108,6 +109,7 @@ export interface AppSettings {
   raHardcoreMode?: boolean;
   startInBigPicture?: boolean;
   controllerType?: ControllerPromptType;
+  bigPictureTheme?: BigPictureTheme;
   ambientMusicEnabled?: boolean;
   ambientMusicVolume?: number;
 }

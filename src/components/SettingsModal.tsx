@@ -24,7 +24,7 @@ import {
   ChevronRight,
   Pencil,
 } from "lucide-react";
-import { AppSettings, CardSizeType, FontSizeType, FontFamilyType, Platform, ThemeType, RaUserProfile, ControllerPromptType } from "../types";
+import { AppSettings, CardSizeType, FontSizeType, FontFamilyType, Platform, ThemeType, RaUserProfile, ControllerPromptType, BigPictureTheme } from "../types";
 import { api } from "../services/api";
 import { ambientAudio } from "../services/ambientAudio";
 import { ConsoleIcon } from "./ConsoleIcon";
@@ -1701,6 +1701,126 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted)" }}>
                   Iniciar o GamingZone Launcher diretamente no Modo Big Picture em tela cheia ao abrir o aplicativo. Ideal para PCs conectados à TV da sala ou setups dedicados com controle.
                 </p>
+              </div>
+
+              {/* Big Picture Dashboard UI Theme */}
+              <div
+                style={{
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "16px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                  <Tv size={20} style={{ color: "var(--accent-cyan)" }} />
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: "0.95rem", display: "block" }}>
+                      Estilo de Dashboard do Modo Big Picture
+                    </span>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                      Transforme a interface e o layout do modo console para o ecossistema que preferir
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+                  {[
+                    {
+                      id: "steam",
+                      name: "Steam Big Picture",
+                      brand: "Valve • Steam Deck UI",
+                      accentColor: "#00E5FF",
+                      icon: "steam",
+                      activeBorder: "#00E5FF",
+                      activeBg: "linear-gradient(135deg, rgba(0, 229, 255, 0.15) 0%, rgba(8, 16, 28, 0.88) 100%)",
+                      activeGlow: "0 0 18px rgba(0, 229, 255, 0.35)",
+                      desc: "Cartazes verticais cinematográficos, estética obsidian moderna e neon ciano",
+                    },
+                    {
+                      id: "xbox",
+                      name: "Xbox Series Dashboard",
+                      brand: "Microsoft • Series X|S",
+                      accentColor: "#00E676",
+                      icon: "xbox",
+                      activeBorder: "#00E676",
+                      activeBg: "linear-gradient(135deg, rgba(0, 230, 118, 0.15) 0%, rgba(10, 24, 12, 0.88) 100%)",
+                      activeGlow: "0 0 18px rgba(0, 230, 118, 0.4)",
+                      desc: "Tiles quadrados e retangulares com anel verde esmeralda icônico e Xbox Guide",
+                    },
+                    {
+                      id: "playstation",
+                      name: "PlayStation 5 UI",
+                      brand: "Sony Interactive",
+                      accentColor: "#00A3FF",
+                      icon: "ps1",
+                      activeBorder: "#00A3FF",
+                      activeBg: "linear-gradient(135deg, rgba(0, 163, 255, 0.16) 0%, rgba(8, 18, 38, 0.88) 100%)",
+                      activeGlow: "0 0 18px rgba(0, 163, 255, 0.4)",
+                      desc: "Arte de tela cheia dinâmica, cartões compactos e visual cósmico Sony Blue",
+                    },
+                    {
+                      id: "nintendo",
+                      name: "Nintendo Switch Home",
+                      brand: "Nintendo • Switch OLED",
+                      accentColor: "#E60012",
+                      icon: "switch",
+                      activeBorder: "#E60012",
+                      activeBg: "linear-gradient(135deg, rgba(230, 0, 18, 0.15) 0%, rgba(36, 12, 14, 0.88) 100%)",
+                      activeGlow: "0 0 18px rgba(230, 0, 18, 0.35)",
+                      desc: "Fileira de cartuchos 1:1 quadrados, estilo flat limpo, ágil e minimalista",
+                    },
+                  ].map((dash) => {
+                    const isSelected = (settings.bigPictureTheme ?? "steam") === dash.id;
+                    return (
+                      <div
+                        key={dash.id}
+                        onClick={() => onUpdateSettings({ bigPictureTheme: dash.id as BigPictureTheme })}
+                        style={{
+                          background: isSelected ? dash.activeBg : "rgba(255, 255, 255, 0.02)",
+                          border: isSelected ? `2px solid ${dash.activeBorder}` : "1px solid var(--border-color)",
+                          borderRadius: "var(--radius-md)",
+                          padding: "14px",
+                          cursor: "pointer",
+                          transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                          boxShadow: isSelected ? dash.activeGlow : "none",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "6px",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <ConsoleIcon iconName={dash.icon} size={18} color={dash.accentColor} />
+                            <span style={{ fontWeight: 800, fontSize: "0.94rem", color: isSelected ? "#fff" : "var(--text-primary)" }}>
+                              {dash.name}
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <span
+                              style={{
+                                fontSize: "0.65rem",
+                                background: dash.accentColor,
+                                color: "#000",
+                                fontWeight: 900,
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              ATIVO
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "0.72rem", color: dash.accentColor, fontWeight: 700 }}>
+                          {dash.brand}
+                        </div>
+                        <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+                          {dash.desc}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Controller Prompts Style */}

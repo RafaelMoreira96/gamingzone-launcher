@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   ambientMusicEnabled: false,
   ambientMusicVolume: 0.25,
   controllerType: "xbox",
+  bigPictureTheme: "steam",
   startInBigPicture: false,
 };
 
@@ -297,6 +298,8 @@ export const App: React.FC = () => {
           onExitBigPicture={() => handleToggleBigPicture(false)}
           controllerType={settings.controllerType}
           theme={settings.theme}
+          bigPictureTheme={settings.bigPictureTheme ?? "steam"}
+          onUpdateBigPictureTheme={(newTheme) => updateSettings({ bigPictureTheme: newTheme })}
           onToggleFavorite={handleToggleFavorite}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onOpenAddGame={() => setIsAddModalOpen(true)}
