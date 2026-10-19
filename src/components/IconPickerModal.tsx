@@ -22,17 +22,50 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
   title = "Escolher Ícone da Plataforma",
 }) => {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<"all" | "consoles" | "symbols">("all");
+  const [category, setCategory] = useState<
+    "all" | "playstation" | "nintendo" | "sega" | "xbox" | "symbols"
+  >("all");
   const [isPickingFile, setIsPickingFile] = useState(false);
 
   const filteredPresets = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return AVAILABLE_ICON_PRESETS.filter((p) => {
-      const matchCat = category === "all" || p.category === category;
-      const matchSearch =
-        search.trim() === "" ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.id.toLowerCase().includes(search.toLowerCase());
-      return matchCat && matchSearch;
+      let matchCat = true;
+      if (category === "symbols") {
+        matchCat = p.category === "symbols";
+      } else if (category === "playstation") {
+        matchCat = p.id.startsWith("ps");
+      } else if (category === "nintendo") {
+        matchCat = [
+          "nes",
+          "snes",
+          "n64",
+          "gamecube",
+          "wii",
+          "wiiu",
+          "switch",
+          "gb",
+          "gbc",
+          "gba",
+          "nds",
+          "3ds",
+          "virtualboy",
+        ].includes(p.id);
+      } else if (category === "sega") {
+        matchCat = ["mastersystem", "genesis", "gamegear", "saturn", "dreamcast"].includes(p.id);
+      } else if (category === "xbox") {
+        matchCat = p.id.startsWith("xbox");
+      }
+
+      if (!matchCat) return false;
+      if (!q) return true;
+
+      const matchNameOrId =
+        p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+      const matchKeyword =
+        p.keywords && p.keywords.some((k) => k.toLowerCase().includes(q));
+
+      return matchNameOrId || matchKeyword;
     });
   }, [search, category]);
 
@@ -62,20 +95,20 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
   return (
     <div
       className="modal-backdrop"
-      style={{ zIndex: 1200, background: "rgba(3, 5, 9, 0.82)" }}
+      style={{ zIndex: 1200, background: "rgba(3, 5, 9, 0.85)", backdropFilter: "blur(6px)" }}
       onClick={onClose}
     >
       <div
         className="modal-content"
         style={{
-          maxWidth: "680px",
-          width: "92vw",
-          maxHeight: "85vh",
+          maxWidth: "760px",
+          width: "94vw",
+          maxHeight: "88vh",
           display: "flex",
           flexDirection: "column",
           gap: "14px",
-          padding: "22px",
-          boxShadow: "0 16px 48px rgba(0, 0, 0, 0.6)",
+          padding: "24px",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.75)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -84,22 +117,22 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div
               style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "8px",
+                width: "40px",
+                height: "40px",
+                borderRadius: "10px",
                 background: "rgba(0, 229, 255, 0.12)",
-                border: "1px solid rgba(0, 229, 255, 0.3)",
+                border: "1px solid rgba(0, 229, 255, 0.35)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <ConsoleIcon iconName={selectedIcon} size={22} color={color} />
+              <ConsoleIcon iconName={selectedIcon} size={24} color={color} />
             </div>
             <div>
-              <h3 style={{ fontSize: "1.1rem", margin: 0, fontWeight: 700 }}>{title}</h3>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "2px 0 0 0" }}>
-                Escolha o logo oficial de um console ou envie uma imagem personalizada do seu PC
+              <h3 style={{ fontSize: "1.15rem", margin: 0, fontWeight: 800 }}>{title}</h3>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "2px 0 0 0" }}>
+                Escolha o console oficial com visual autêntico ou envie uma imagem personalizada do seu PC
               </p>
             </div>
           </div>
@@ -112,7 +145,7 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <div
             style={{
-              flex: 1,
+              flex: "1 1 240px",
               display: "flex",
               alignItems: "center",
               gap: "8px",
@@ -125,7 +158,7 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
             <Search size={16} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Buscar console ou símbolo (ex: PS2, N64, Switch, disco)..."
+              placeholder="Buscar console ou símbolo (ex: PS2, N64, Switch, Mega Drive, Xbox)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -149,28 +182,52 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
           </div>
 
           {/* CATEGORY PILLS */}
-          <div style={{ display: "flex", gap: "6px" }}>
+          <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
             <button
               type="button"
               className={`console-quick-pill ${category === "all" ? "active" : ""}`}
               onClick={() => setCategory("all")}
-              style={{ padding: "5px 12px", fontSize: "0.75rem" }}
+              style={{ padding: "5px 10px", fontSize: "0.72rem" }}
             >
               Todos
             </button>
             <button
               type="button"
-              className={`console-quick-pill ${category === "consoles" ? "active" : ""}`}
-              onClick={() => setCategory("consoles")}
-              style={{ padding: "5px 12px", fontSize: "0.75rem" }}
+              className={`console-quick-pill ${category === "playstation" ? "active" : ""}`}
+              onClick={() => setCategory("playstation")}
+              style={{ padding: "5px 10px", fontSize: "0.72rem" }}
             >
-              Consoles
+              PlayStation
+            </button>
+            <button
+              type="button"
+              className={`console-quick-pill ${category === "nintendo" ? "active" : ""}`}
+              onClick={() => setCategory("nintendo")}
+              style={{ padding: "5px 10px", fontSize: "0.72rem" }}
+            >
+              Nintendo
+            </button>
+            <button
+              type="button"
+              className={`console-quick-pill ${category === "sega" ? "active" : ""}`}
+              onClick={() => setCategory("sega")}
+              style={{ padding: "5px 10px", fontSize: "0.72rem" }}
+            >
+              Sega
+            </button>
+            <button
+              type="button"
+              className={`console-quick-pill ${category === "xbox" ? "active" : ""}`}
+              onClick={() => setCategory("xbox")}
+              style={{ padding: "5px 10px", fontSize: "0.72rem" }}
+            >
+              Xbox
             </button>
             <button
               type="button"
               className={`console-quick-pill ${category === "symbols" ? "active" : ""}`}
               onClick={() => setCategory("symbols")}
-              style={{ padding: "5px 12px", fontSize: "0.75rem" }}
+              style={{ padding: "5px 10px", fontSize: "0.72rem" }}
             >
               Símbolos
             </button>
@@ -259,9 +316,9 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
             overflowY: "auto",
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
-            gap: "8px",
+            gap: "10px",
             padding: "4px",
-            maxHeight: "380px",
+            maxHeight: "440px",
           }}
         >
           {filteredPresets.map((preset) => {
@@ -279,9 +336,9 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "8px",
-                  padding: "12px 8px",
-                  borderRadius: "8px",
+                  gap: "10px",
+                  padding: "14px 10px",
+                  borderRadius: "10px",
                   background: isSelected
                     ? "rgba(255, 255, 255, 0.12)"
                     : "rgba(255, 255, 255, 0.03)",
@@ -289,12 +346,12 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
                   color: isSelected ? "#fff" : "var(--text-secondary)",
                   cursor: "pointer",
                   transition: "all 0.15s ease",
-                  boxShadow: isSelected ? `0 0 14px ${color}40` : "none",
+                  boxShadow: isSelected ? `0 0 16px ${color}40` : "none",
                 }}
                 title={preset.name}
               >
                 <div style={{ position: "relative" }}>
-                  <ConsoleIcon iconName={preset.id} size={28} color={isSelected ? color : undefined} />
+                  <ConsoleIcon iconName={preset.id} size={32} color={isSelected ? color : undefined} />
                   {isSelected && (
                     <div
                       style={{
