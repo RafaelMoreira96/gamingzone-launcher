@@ -90,6 +90,7 @@ export type FontSizeType = 'small' | 'medium' | 'large' | 'xlarge';
 export type CardSizeType = 'compact' | 'normal' | 'spacious';
 export type ControllerPromptType = 'xbox' | 'playstation' | 'nintendo';
 export type BigPictureTheme = 'steam' | 'xbox' | 'playstation' | 'nintendo';
+export type CardBadgePreference = 'auto' | 'platform' | 'recomp';
 
 export interface AppSettings {
   theme: ThemeType;
@@ -110,6 +111,7 @@ export interface AppSettings {
   startInBigPicture?: boolean;
   controllerType?: ControllerPromptType;
   bigPictureTheme?: BigPictureTheme;
+  cardBadgePreference?: CardBadgePreference;
   ambientMusicEnabled?: boolean;
   ambientMusicVolume?: number;
 }

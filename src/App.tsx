@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   ambientMusicVolume: 0.25,
   controllerType: "xbox",
   bigPictureTheme: "steam",
+  cardBadgePreference: "auto",
   startInBigPicture: false,
 };
 
@@ -643,6 +644,7 @@ export const App: React.FC = () => {
                   <GameCard
                     key={game.id}
                     game={game}
+                    badgePreference={settings.cardBadgePreference ?? "auto"}
                     onSelect={handleCardClick}
                     onLaunch={handleLaunch}
                     onStop={handleStop}

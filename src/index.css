@@ -427,6 +427,125 @@ button, input, select, textarea {
   text-align: center;
 }
 
+/* Game Card Cover Top Bar (Clean Icon Badge + Action Buttons) */
+.game-cover-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Single Icon Badge: Platform or Recomp (No Text Clutter) */
+.game-card-icon-badge {
+  pointer-events: auto;
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(8, 12, 20, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.game-card:hover .game-card-icon-badge {
+  transform: scale(1.08);
+}
+
+.game-card-icon-badge:hover {
+  transform: scale(1.15) !important;
+  background: rgba(14, 20, 32, 0.95);
+}
+
+.game-card-icon-badge.badge-recomp {
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.game-card-icon-badge.badge-platform {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Pulsing running dot indicator on badge corner */
+.card-badge-running-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #00E676;
+  border: 1.5px solid #080c14;
+  box-shadow: 0 0 10px #00E676;
+  animation: pulse-glow 1.4s infinite;
+}
+
+/* Game Card Top Right Action Buttons (Trophy & Favorite) */
+.game-card-top-actions {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-action-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(8, 12, 20, 0.78);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.card-action-icon-btn:hover {
+  transform: scale(1.12);
+  background: rgba(14, 20, 32, 0.96);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.card-ra-btn:hover {
+  border-color: rgba(255, 153, 0, 0.6);
+  box-shadow: 0 0 14px rgba(255, 153, 0, 0.35);
+}
+
+.card-fav-btn.active {
+  background: rgba(18, 16, 10, 0.88);
+  border-color: rgba(255, 184, 0, 0.65);
+  color: #FFB800;
+  box-shadow: 0 0 14px rgba(255, 184, 0, 0.35);
+}
+
+/* Bottom cover gradient for smooth transition */
+.game-cover-bottom-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(180deg, transparent 0%, rgba(8, 11, 18, 0.7) 100%);
+  pointer-events: none;
+}
+
 .game-cover-overlay {
   position: absolute;
   inset: 0;
@@ -435,68 +554,6 @@ button, input, select, textarea {
   flex-direction: column;
   justify-content: space-between;
   padding: 14px;
-}
-
-.card-top-badges {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  width: 100%;
-}
-
-/* Original Platform Badge (Requisito fundamental) */
-.origin-platform-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.recomp-arrow {
-  color: var(--accent-cyan);
-  font-weight: 900;
-}
-
-.recomp-target {
-  color: #ffffff;
-  opacity: 0.9;
-}
-
-/* Execution Type Badges (Recomp PC vs Emulado) */
-.execution-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.execution-type-badge.type-recomp {
-  background: rgba(0, 229, 255, 0.14);
-  border: 1px solid rgba(0, 229, 255, 0.4);
-  color: #00e5ff;
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
-}
-
-.execution-type-badge.type-emulator {
-  background: rgba(167, 139, 250, 0.14);
-  border: 1px solid rgba(167, 139, 250, 0.4);
-  color: #c4b5fd;
-  box-shadow: 0 0 12px rgba(167, 139, 250, 0.2);
 }
 
 /* Type Toggle Bar (Segmented Control) */
@@ -684,35 +741,77 @@ button, input, select, textarea {
 }
 
 .game-card-info {
-  padding: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(14, 18, 28, 0.95) 0%, rgba(8, 11, 18, 0.98) 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.game-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
 .game-card-title {
-  font-size: 0.98rem;
-  font-weight: 700;
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 800;
+  letter-spacing: -0.2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-primary);
+  color: #ffffff;
+  flex: 1;
+}
+
+.game-card-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border-width: 1px;
+  border-style: solid;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #00E676;
+  box-shadow: 0 0 6px #00E676;
+  animation: pulse-glow 1.4s infinite;
 }
 
 .game-card-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
 }
 
 .playtime-tag {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-family: var(--font-mono);
   color: var(--text-secondary);
+  font-size: 0.74rem;
+}
+
+.last-played-tag {
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 /* Quick Play Hover Button */
@@ -734,6 +833,13 @@ button, input, select, textarea {
   opacity: 0;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 0 24px var(--accent-cyan-glow);
+  z-index: 8;
+}
+
+.quick-play-btn.running {
+  background: var(--accent-red);
+  color: #ffffff;
+  box-shadow: 0 0 24px var(--accent-red-glow);
 }
 
 .game-card:hover .quick-play-btn {

@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Play, Square, Clock, Gamepad2, Cpu, Star, Trophy } from "lucide-react";
-import { Game } from "../types";
+import { Game, CardBadgePreference } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
 import { ConsoleIcon } from "./ConsoleIcon";
 
 interface GameCardProps {
   game: Game;
+  badgePreference?: CardBadgePreference;
   onSelect: (game: Game) => void;
   onLaunch: (game: Game, e: React.MouseEvent) => void;
   onStop: (game: Game, e: React.MouseEvent) => void;
@@ -15,13 +16,33 @@ interface GameCardProps {
 
 export const GameCard: React.FC<GameCardProps> = ({
   game,
+  badgePreference = "auto",
   onSelect,
   onLaunch,
   onStop,
   onToggleFavorite,
   onOpenAchievements,
 }) => {
+  const [localToggle, setLocalToggle] = useState<boolean | null>(null);
+
   const platformColor = game.platform_brand_color || "#00E5FF";
+  const isRecomp = !game.is_emulator;
+
+  // Determine what icon to display based on preference or toggle:
+  // - "recomp": always show recomp icon for PC ports
+  // - "platform": always show platform console icon (e.g. N64, PS1)
+  // - "auto": recomp icon for recomp ports, platform icon for emulated games
+  const defaultShowRecomp =
+    badgePreference === "recomp" ||
+    (badgePreference === "auto" && isRecomp) ||
+    (!game.original_platform_id || game.original_platform_id === "pc" || game.original_platform_id === "recomp");
+
+  const showRecomp = localToggle !== null ? localToggle : defaultShowRecomp;
+
+  const badgeColor = showRecomp ? "var(--accent-cyan, #00E5FF)" : platformColor;
+  const badgeTooltip = showRecomp
+    ? `Recompilação Nativa PC${game.platform_name ? ` • Origem: ${game.platform_name}` : ""}${game.original_platform_id ? " (Clique para alternar para o ícone do console)" : ""}`
+    : `Plataforma: ${game.platform_name || game.original_platform_id?.toUpperCase() || "Console"}${game.is_emulator ? " (Emulado)" : " (Recomp Nativo)"}${isRecomp ? " (Clique para alternar para o ícone de recomp)" : ""}`;
 
   const getStatusBadge = () => {
     switch (game.play_status) {
@@ -63,15 +84,14 @@ export const GameCard: React.FC<GameCardProps> = ({
           </div>
         )}
 
-        {/* Hover Quick Action Button */}
+        {/* Quick Play Hover Button */}
         {game.is_running ? (
           <button
-            className="quick-play-btn"
-            style={{ background: "var(--accent-red)", color: "#fff" }}
+            className="quick-play-btn running"
             onClick={(e) => onStop(game, e)}
             title="Encerrar Execução"
           >
-            <Square size={22} fill="currentColor" />
+            <Square size={20} fill="currentColor" />
           </button>
         ) : (
           <button
@@ -79,150 +99,105 @@ export const GameCard: React.FC<GameCardProps> = ({
             onClick={(e) => onLaunch(game, e)}
             title={game.is_emulator ? "Iniciar no Emulador" : "Iniciar Recomp PC"}
           >
-            <Play size={22} fill="currentColor" />
+            <Play size={22} fill="currentColor" style={{ marginLeft: "2px" }} />
           </button>
         )}
 
-        {/* Quick Favorite Star Button */}
-        {onToggleFavorite && (
-          <button
-            className={`quick-fav-btn ${game.is_favorite ? "active" : ""}`}
-            onClick={(e) => onToggleFavorite(game, e)}
-            title={game.is_favorite ? "Remover dos Favoritos" : "Marcar como Favorito"}
+        {/* TOP COVER BAR: ONLY CLEAN ICON BADGE (PLATFORM OR RECOMP) & RIGHT ACTIONS */}
+        <div className="game-cover-top-bar">
+          {/* Authentic Icon Badge (Single Icon Only - No Text Clutter) */}
+          <div
+            className={`game-card-icon-badge ${showRecomp ? "badge-recomp" : "badge-platform"}`}
             style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              zIndex: 10,
-              background: game.is_favorite ? "rgba(10, 14, 22, 0.85)" : "rgba(10, 14, 22, 0.6)",
-              border: `1px solid ${game.is_favorite ? "rgba(255, 184, 0, 0.7)" : "rgba(255, 255, 255, 0.15)"}`,
-              borderRadius: "8px",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: game.is_favorite ? "#FFB800" : "rgba(255, 255, 255, 0.6)",
-              backdropFilter: "blur(8px)",
-              transition: "all 0.2s ease",
+              borderColor: showRecomp ? "rgba(0, 229, 255, 0.45)" : `${platformColor}66`,
+              color: badgeColor,
             }}
-          >
-            <Star
-              size={16}
-              fill={game.is_favorite ? "#FFB800" : "none"}
-              stroke="currentColor"
-            />
-          </button>
-        )}
-
-        {/* Quick RetroAchievements Trophy Button */}
-        {onOpenAchievements && (
-          <button
-            className="quick-ra-btn"
+            title={badgeTooltip}
             onClick={(e) => {
-              e.stopPropagation();
-              onOpenAchievements(game, e);
-            }}
-            title="Ver Conquistas do RetroAchievements"
-            style={{
-              position: "absolute",
-              top: "10px",
-              right: onToggleFavorite ? "48px" : "10px",
-              zIndex: 10,
-              background: "rgba(10, 14, 22, 0.75)",
-              border: "1px solid rgba(255, 153, 0, 0.4)",
-              borderRadius: "8px",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: "#FFB84D",
-              backdropFilter: "blur(8px)",
-              transition: "all 0.2s ease",
+              if (isRecomp && game.original_platform_id) {
+                e.stopPropagation();
+                setLocalToggle((prev) => (prev === null ? !defaultShowRecomp : !prev));
+              }
             }}
           >
-            <Trophy size={15} color="#FF9900" />
-          </button>
-        )}
+            <ConsoleIcon
+              platformId={showRecomp ? null : game.original_platform_id}
+              iconName={showRecomp ? "recomp" : undefined}
+              name={game.platform_name}
+              size={18}
+              color={badgeColor}
+            />
+            {game.is_running && <span className="card-badge-running-dot" title="Jogo em execução" />}
+          </div>
 
-        <div className="game-cover-overlay">
-          <div className="card-top-badges">
-            {/* PLATAFORMA DE ORIGEM INDICATOR */}
-            <div
-              className="origin-platform-badge"
-              style={{
-                backgroundColor: "rgba(10, 14, 22, 0.88)",
-                borderColor: platformColor,
-                color: platformColor,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <ConsoleIcon platformId={game.original_platform_id} name={game.platform_name} size={13} color={platformColor} />
-              <span>{game.platform_name || game.original_platform_id.toUpperCase()}</span>
-            </div>
+          {/* Right Action Icons: Achievements & Favorite */}
+          <div className="game-card-top-actions">
+            {onOpenAchievements && (
+              <button
+                type="button"
+                className="card-action-icon-btn card-ra-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAchievements(game, e);
+                }}
+                title="Ver Conquistas do RetroAchievements"
+              >
+                <Trophy size={14} color="#FF9900" />
+              </button>
+            )}
 
-            {/* EXECUTION TYPE: RECOMP PC VS EMULADO */}
-            <div className={`execution-type-badge ${game.is_emulator ? "type-emulator" : "type-recomp"}`}>
-              {game.is_emulator ? (
-                <>
-                  <Gamepad2 size={11} />
-                  <span>EMULADO</span>
-                </>
-              ) : (
-                <>
-                  <Cpu size={11} />
-                  <span>RECOMP PC</span>
-                </>
-              )}
-            </div>
-
-            {/* RUNNING INDICATOR */}
-            {game.is_running && (
-              <div className="running-badge">
-                <span className="running-dot" />
-                <span>RODANDO</span>
-              </div>
+            {onToggleFavorite && (
+              <button
+                type="button"
+                className={`card-action-icon-btn card-fav-btn ${game.is_favorite ? "active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(game, e);
+                }}
+                title={game.is_favorite ? "Remover dos Favoritos" : "Marcar como Favorito"}
+              >
+                <Star
+                  size={14}
+                  fill={game.is_favorite ? "#FFB800" : "none"}
+                  stroke={game.is_favorite ? "#FFB800" : "currentColor"}
+                />
+              </button>
             )}
           </div>
         </div>
+
+        {/* Bottom subtle gradient for contrast */}
+        <div className="game-cover-bottom-gradient" />
       </div>
 
+      {/* GAME CARD INFO FOOTER */}
       <div className="game-card-info">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
-          <h3 className="game-card-title" title={game.title} style={{ margin: 0, flex: 1 }}>
+        <div className="game-card-title-row">
+          <h3 className="game-card-title" title={game.title}>
             {game.title}
           </h3>
           {statusBadge && (
             <span
+              className="game-card-status-pill"
               style={{
-                fontSize: "0.6rem",
-                fontWeight: 800,
-                letterSpacing: "0.5px",
-                padding: "2px 6px",
-                borderRadius: "4px",
                 backgroundColor: statusBadge.bg,
-                border: `1px solid ${statusBadge.border}`,
+                borderColor: statusBadge.border,
                 color: statusBadge.color,
-                whiteSpace: "nowrap",
-                flexShrink: 0,
               }}
             >
+              {game.play_status === "playing" && <span className="status-live-dot" />}
               {statusBadge.label}
             </span>
           )}
         </div>
+
         <div className="game-card-meta">
-          <span className="playtime-tag">
-            <Clock size={13} />
-            {formatPlaytime(game.total_playtime_seconds)}
+          <span className="playtime-tag" title="Tempo total jogado">
+            <Clock size={12} />
+            <span>{formatPlaytime(game.total_playtime_seconds)}</span>
           </span>
           {game.last_played_at && (
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+            <span className="last-played-tag" title="Última vez jogado">
               {new Date(game.last_played_at).toLocaleDateString("pt-BR")}
             </span>
           )}

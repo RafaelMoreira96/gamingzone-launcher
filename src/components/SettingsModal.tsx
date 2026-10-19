@@ -24,7 +24,7 @@ import {
   ChevronRight,
   Pencil,
 } from "lucide-react";
-import { AppSettings, CardSizeType, FontSizeType, FontFamilyType, Platform, ThemeType, RaUserProfile, ControllerPromptType, BigPictureTheme } from "../types";
+import { AppSettings, CardSizeType, FontSizeType, FontFamilyType, Platform, ThemeType, RaUserProfile, ControllerPromptType, BigPictureTheme, CardBadgePreference } from "../types";
 import { api } from "../services/api";
 import { ambientAudio } from "../services/ambientAudio";
 import { ConsoleIcon } from "./ConsoleIcon";
@@ -702,6 +702,77 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {c.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Estilo do Ícone nos Cards de Jogos */}
+              <div className="form-group">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <label className="form-label" style={{ margin: 0 }}>Ícone dos Cards da Biblioteca:</label>
+                  <span style={{ fontSize: "0.72rem", color: "var(--accent-cyan)" }}>
+                    {settings.cardBadgePreference === "platform"
+                      ? "Apenas Ícone da Plataforma"
+                      : settings.cardBadgePreference === "recomp"
+                      ? "Apenas Ícone de Recomp"
+                      : "Automático (Recomp ou Plataforma)"}
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+                  {[
+                    {
+                      id: "auto",
+                      name: "Automático",
+                      badge: "Recomp ou Plataforma",
+                      desc: "Ícone de Recomp para portas nativas de PC e Ícone do Console para jogos emulados",
+                    },
+                    {
+                      id: "platform",
+                      name: "Ícone da Plataforma",
+                      badge: "N64, PS1, PS2...",
+                      desc: "Sempre destaca o logotipo do console de origem (ex: Nintendo 64, PS1, etc.)",
+                    },
+                    {
+                      id: "recomp",
+                      name: "Ícone de Recomp",
+                      badge: "Chip CPU / Recomp",
+                      desc: "Destaca o chip de Recompilação Nativa em todos os ports de PC",
+                    },
+                  ].map((pref) => {
+                    const isSelected = (settings.cardBadgePreference ?? "auto") === pref.id;
+                    return (
+                      <div
+                        key={pref.id}
+                        onClick={() => onUpdateSettings({ cardBadgePreference: pref.id as CardBadgePreference })}
+                        style={{
+                          background: isSelected
+                            ? "linear-gradient(135deg, rgba(0, 229, 255, 0.12) 0%, rgba(10, 16, 26, 0.9) 100%)"
+                            : "rgba(255, 255, 255, 0.02)",
+                          border: isSelected ? "2px solid var(--accent-cyan)" : "1px solid var(--border-color)",
+                          borderRadius: "var(--radius-md)",
+                          padding: "12px",
+                          cursor: "pointer",
+                          transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                          boxShadow: isSelected ? "0 0 16px rgba(0, 229, 255, 0.25)" : "none",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "6px",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 800, fontSize: "0.88rem", color: isSelected ? "#fff" : "var(--text-primary)" }}>
+                            {pref.name}
+                          </span>
+                          {isSelected && <Check size={14} color="var(--accent-cyan)" />}
+                        </div>
+                        <span style={{ fontSize: "0.7rem", color: "var(--accent-cyan)", fontWeight: 700 }}>
+                          {pref.badge}
+                        </span>
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.35 }}>
+                          {pref.desc}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
