@@ -1612,47 +1612,28 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                         </div>
                       )}
 
-                      {game.is_favorite && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "8px",
-                            right: "8px",
-                            background: "rgba(0, 0, 0, 0.75)",
-                            backdropFilter: "blur(4px)",
-                            borderRadius: "50%",
-                            width: "28px",
-                            height: "28px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#FFB84D",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
-                            zIndex: 5,
-                          }}
-                        >
-                          <Star size={15} fill="#FFB84D" />
-                        </div>
-                      )}
+                      {/* TOP BAR: Clean Running Status & Favorite Star (No overlapping badges) */}
+                      <div className="shelf-card-top-bar">
+                        {game.is_running ? (
+                          <div className="shelf-card-running-pill" title="Em execução">
+                            <span className="running-dot" />
+                            <span>JOGANDO</span>
+                          </div>
+                        ) : (
+                          <span />
+                        )}
+
+                        {game.is_favorite && (
+                          <div className="shelf-card-fav-pill" title="Favorito">
+                            <Star size={13} fill="#FFB84D" color="#FFB84D" />
+                          </div>
+                        )}
+                      </div>
 
                       <div className="shelf-card-badge" style={{ color: gColor, display: "inline-flex", alignItems: "center", gap: "5px" }}>
                         <ConsoleIcon platformId={game.original_platform_id} name={game.platform_name} size={13} color={gColor} />
                         <span>{game.platform_name || game.original_platform_id.toUpperCase()}</span>
                       </div>
-
-                      <div
-                        className={`shelf-card-type-badge ${
-                          game.is_emulator ? "type-emulator" : "type-recomp"
-                        }`}
-                      >
-                        {game.is_emulator ? "EMU" : "PC"}
-                      </div>
-
-                      {game.is_running && (
-                        <div className="shelf-card-running">
-                          <span className="running-dot" />
-                        </div>
-                      )}
                     </div>
                   );
                 })}
