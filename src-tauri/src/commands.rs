@@ -85,7 +85,11 @@ pub fn delete_platform(
 #[tauri::command]
 pub fn get_games(state: State<'_, AppServices>) -> Result<Vec<Game>, String> {
     let running = state.process_mgr.get_running_game_ids();
-    state.db.get_games(&running).map_err(|e| e.to_string())
+    let mut games = state.db.get_games(&running).map_err(|e| e.to_string())?;
+    for g in games.iter_mut() {
+        resolve_game_asset_urls(g);
+    }
+    Ok(games)
 }
 
 #[tauri::command]
@@ -107,7 +111,8 @@ pub fn get_game_details(
         .get_game_by_id(&game_id, is_running)
         .map_err(|e| e.to_string())?;
 
-    if let Some(game) = game {
+    if let Some(mut game) = game {
+        resolve_game_asset_urls(&mut game);
         let sessions = state
             .db
             .get_sessions_for_game(&game_id)
@@ -332,6 +337,58 @@ pub fn pick_directory() -> Result<Option<String>, String> {
     Ok(folder.map(|p| p.to_string_lossy().to_string()))
 }
 
+pub fn image_path_to_data_url(path_str: &str) -> Option<String> {
+    let path = std::path::Path::new(path_str);
+    if !path.is_file() {
+        return None;
+    }
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("png")
+        .to_lowercase();
+    let mime = match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "ico" => "image/x-icon",
+        "gif" => "image/gif",
+        _ => "image/png",
+    };
+    if let Ok(bytes) = std::fs::read(path) {
+        use base64::Engine;
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        return Some(format!("data:{};base64,{}", mime, b64));
+    }
+    None
+}
+
+fn resolve_game_asset_urls(game: &mut Game) {
+    if let Some(ref cover) = game.cover_url {
+        let is_special = cover.starts_with("http://")
+            || cover.starts_with("https://")
+            || cover.starts_with("data:")
+            || cover.starts_with("asset:");
+        if !is_special {
+            if let Some(data_url) = image_path_to_data_url(cover) {
+                game.cover_url = Some(data_url);
+            }
+        }
+    }
+    if let Some(ref banner) = game.banner_url {
+        let is_special = banner.starts_with("http://")
+            || banner.starts_with("https://")
+            || banner.starts_with("data:")
+            || banner.starts_with("asset:");
+        if !is_special {
+            if let Some(data_url) = image_path_to_data_url(banner) {
+                game.banner_url = Some(data_url);
+            }
+        }
+    }
+}
+
 #[tauri::command]
 pub fn pick_image_file() -> Result<Option<String>, String> {
     let file = rfd::FileDialog::new()
@@ -342,7 +399,22 @@ pub fn pick_image_file() -> Result<Option<String>, String> {
         )
         .pick_file();
 
-    Ok(file.map(|p| p.to_string_lossy().to_string()))
+    match file {
+        Some(p) => {
+            let path_str = p.to_string_lossy().to_string();
+            if let Some(data_url) = image_path_to_data_url(&path_str) {
+                Ok(Some(data_url))
+            } else {
+                Ok(Some(path_str))
+            }
+        }
+        None => Ok(None),
+    }
+}
+
+#[tauri::command]
+pub fn read_image_as_data_url(path: String) -> Result<String, String> {
+    image_path_to_data_url(&path).ok_or_else(|| "Não foi possível carregar o arquivo de imagem".to_string())
 }
 
 #[tauri::command]

@@ -1656,6 +1656,13 @@ export const api = {
     return "https://images.igdb.com/igdb/image/upload/t_cover_big/co1t9u.jpg";
   },
 
+  async readImageAsDataUrl(path: string): Promise<string> {
+    if (isTauri()) {
+      return await invoke<string>("read_image_as_data_url", { path });
+    }
+    return path;
+  },
+
   async openFolder(path: string): Promise<void> {
     if (isTauri()) {
       return await invoke<void>("open_folder", { path });

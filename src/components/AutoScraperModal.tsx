@@ -273,6 +273,7 @@ export const AutoScraperModal: React.FC<AutoScraperModalProps> = ({
                           src={asset.cover_url}
                           alt="Capa"
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          referrerPolicy="no-referrer"
                         />
                       ) : (
                         <div
@@ -307,6 +308,7 @@ export const AutoScraperModal: React.FC<AutoScraperModalProps> = ({
                           src={asset.banner_url}
                           alt="Banner Hero"
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          referrerPolicy="no-referrer"
                         />
                       ) : (
                         <div

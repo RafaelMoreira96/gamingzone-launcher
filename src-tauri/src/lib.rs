@@ -57,6 +57,7 @@ pub fn run() {
             pick_rom_file,
             pick_directory,
             pick_image_file,
+            read_image_as_data_url,
             scrape_game_assets,
             set_discord_enabled,
             test_discord_connection,

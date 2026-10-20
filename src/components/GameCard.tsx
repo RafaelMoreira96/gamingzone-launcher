@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Play, Square, Clock, Gamepad2, Cpu, Star, Trophy } from "lucide-react";
 import { Game, CardBadgePreference } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
@@ -24,6 +24,11 @@ export const GameCard: React.FC<GameCardProps> = ({
   onOpenAchievements,
 }) => {
   const [localToggle, setLocalToggle] = useState<boolean | null>(null);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [game.cover_url]);
 
   const platformColor = game.platform_brand_color || "#00E5FF";
   const isRecomp = !game.is_emulator;
@@ -63,14 +68,15 @@ export const GameCard: React.FC<GameCardProps> = ({
   return (
     <div className="game-card" onClick={() => onSelect(game)}>
       <div className="game-cover-container">
-        {game.cover_url ? (
+        {game.cover_url && !imgError ? (
           <img
             src={formatImageUrl(game.cover_url)}
             alt={game.title}
             className="game-cover-img"
             loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = "none";
+            referrerPolicy="no-referrer"
+            onError={() => {
+              setImgError(true);
             }}
           />
         ) : (

@@ -406,6 +406,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
               <img
                 src={formatImageUrl(currentGame.banner_url || currentGame.cover_url)}
                 alt={currentGame.title}
+                referrerPolicy="no-referrer"
               />
             ) : (
               <div
@@ -1710,6 +1711,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         src={formatImageUrl(manualCover.trim())}
                         alt="Preview Capa"
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                         }}
@@ -1804,6 +1806,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         src={formatImageUrl(manualBanner.trim())}
                         alt="Preview Banner"
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                         }}

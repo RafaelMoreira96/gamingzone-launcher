@@ -1035,6 +1035,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
             src={formatImageUrl(selectedGame.banner_url || selectedGame.cover_url)}
             alt={selectedGame.title}
             className="big-picture-backdrop-img"
+            referrerPolicy="no-referrer"
           />
         ) : (
           <div className="big-picture-backdrop-placeholder" />
@@ -1602,6 +1603,7 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                           src={formatImageUrl(game.cover_url)}
                           alt={game.title}
                           className="shelf-card-img"
+                          referrerPolicy="no-referrer"
                         />
                       ) : (
                         <div className="shelf-card-fallback">
