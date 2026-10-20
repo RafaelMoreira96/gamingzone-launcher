@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Play, Square, Clock, Gamepad2, Cpu, Star, Trophy } from "lucide-react";
+import { Play, Square, Clock, Gamepad2, Cpu, Star, Trophy, Pencil } from "lucide-react";
 import { Game, CardBadgePreference } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
 import { ConsoleIcon } from "./ConsoleIcon";
@@ -12,6 +12,7 @@ interface GameCardProps {
   onStop: (game: Game, e: React.MouseEvent) => void;
   onToggleFavorite?: (game: Game, e: React.MouseEvent) => void;
   onOpenAchievements?: (game: Game, e: React.MouseEvent) => void;
+  onEdit?: (game: Game, e: React.MouseEvent) => void;
 }
 
 export const GameCard: React.FC<GameCardProps> = ({
@@ -22,6 +23,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   onStop,
   onToggleFavorite,
   onOpenAchievements,
+  onEdit,
 }) => {
   const [localToggle, setLocalToggle] = useState<boolean | null>(null);
   const [imgError, setImgError] = useState(false);
@@ -136,9 +138,9 @@ export const GameCard: React.FC<GameCardProps> = ({
             {game.is_running && <span className="card-badge-running-dot" title="Jogo em execução" />}
           </div>
 
-          {/* Right Action Icons: Achievements & Favorite */}
+          {/* Right Action Icons: Achievements (Emulated only), Edit, & Favorite */}
           <div className="game-card-top-actions">
-            {onOpenAchievements && (
+            {onOpenAchievements && Boolean(game.is_emulator) && (
               <button
                 type="button"
                 className="card-action-icon-btn card-ra-btn"
@@ -149,6 +151,20 @@ export const GameCard: React.FC<GameCardProps> = ({
                 title="Ver Conquistas do RetroAchievements"
               >
                 <Trophy size={14} color="#FF9900" />
+              </button>
+            )}
+
+            {onEdit && (
+              <button
+                type="button"
+                className="card-action-icon-btn card-edit-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(game, e);
+                }}
+                title="Editar Dados do Jogo"
+              >
+                <Pencil size={13} color="var(--accent-cyan)" />
               </button>
             )}
 

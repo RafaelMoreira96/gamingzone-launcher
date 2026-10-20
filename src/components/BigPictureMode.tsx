@@ -1520,19 +1520,21 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
                     </button>
                   )}
 
-                  <button
-                    className="btn-secondary bp-action-btn"
-                    onClick={() => {
-                      playSound("select");
-                      setAchievementsTargetGame(selectedGame);
-                      setActiveTab("achievements");
-                    }}
-                    style={{ padding: "16px 20px", fontSize: "1rem" }}
-                    title="Ver Conquistas deste jogo no RetroAchievements"
-                  >
-                    <Trophy size={17} color="#FF9900" />
-                    <span>Conquistas</span>
-                  </button>
+                  {Boolean(selectedGame.is_emulator) && (
+                    <button
+                      className="btn-secondary bp-action-btn"
+                      onClick={() => {
+                        playSound("select");
+                        setAchievementsTargetGame(selectedGame);
+                        setActiveTab("achievements");
+                      }}
+                      style={{ padding: "16px 20px", fontSize: "1rem" }}
+                      title="Ver Conquistas deste jogo no RetroAchievements"
+                    >
+                      <Trophy size={17} color="#FF9900" />
+                      <span>Conquistas</span>
+                    </button>
+                  )}
 
                   {onToggleFavorite && (
                     <button

@@ -29,14 +29,17 @@ import {
   History,
   Timer,
   Flame,
+  Pencil,
 } from "lucide-react";
-import { Game, GameDetails, RaGameProgress, SaveBackup, PlayStatusType } from "../types";
+import { Game, GameDetails, RaGameProgress, SaveBackup, PlayStatusType, Platform } from "../types";
 import { api, formatPlaytime, formatImageUrl } from "../services/api";
 import { ConsoleIcon } from "./ConsoleIcon";
 import { AutoScraperModal } from "./AutoScraperModal";
+import { EditGameModal } from "./EditGameModal";
 
 interface GameDetailsModalProps {
   game: Game | null;
+  platforms?: Platform[];
   isOpen: boolean;
   onClose: () => void;
   onLaunch: (game: Game) => void;
@@ -54,6 +57,7 @@ interface GameDetailsModalProps {
 
 export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   game,
+  platforms = [],
   isOpen,
   onClose,
   onLaunch,
@@ -71,6 +75,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   const [details, setDetails] = useState<GameDetails | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isScraperOpen, setIsScraperOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Manual Art Customization State
   const [isManualArtOpen, setIsManualArtOpen] = useState(false);
@@ -97,7 +102,11 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   useEffect(() => {
     if (game && isOpen) {
       loadDetails(game.id);
-      loadRaProgress(game);
+      if (game.is_emulator) {
+        loadRaProgress(game);
+      } else {
+        setRaProgress(null);
+      }
       loadBackups(game.id);
       setSavePathInput(game.save_path || "");
       setConfirmDelete(false);
@@ -548,6 +557,30 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                       </select>
                     </div>
 
+                    {/* EDIT GAME PROMINENT BUTTON */}
+                    <button
+                      className="details-fav-btn"
+                      onClick={() => setIsEditModalOpen(true)}
+                      title="Editar Dados, Plataforma, Executável e ROM"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "rgba(0, 229, 255, 0.15)",
+                        border: "1px solid rgba(0, 229, 255, 0.4)",
+                        color: "var(--accent-cyan)",
+                        padding: "5px 12px",
+                        borderRadius: "20px",
+                        cursor: "pointer",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <Pencil size={14} />
+                      <span>Editar Jogo</span>
+                    </button>
+
                     {/* EDIT ART QUICK BUTTON */}
                     <button
                       className="details-fav-btn"
@@ -599,7 +632,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
             </div>
           </div>
 
-          {/* SUB-TABS: OVERVIEW | RETROACHIEVEMENTS | SAVES | MODS */}
+          {/* SUB-TABS: OVERVIEW | RETROACHIEVEMENTS (EMULATED ONLY) | SAVES | MODS */}
           <div className="details-subtabs">
             <button
               className={`details-subtab-btn ${activeTab === "overview" ? "active" : ""}`}
@@ -608,31 +641,33 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
               <span>Visão Geral & Histórico</span>
             </button>
 
-            <button
-              className={`details-subtab-btn ${activeTab === "achievements" ? "active" : ""}`}
-              onClick={() => setActiveTab("achievements")}
-              style={{
-                color: activeTab === "achievements" ? "#FFB84D" : undefined,
-                borderColor: activeTab === "achievements" ? "#FF9900" : undefined,
-              }}
-            >
-              <Trophy size={15} color="#FF9900" />
-              <span>RetroAchievements</span>
-              {raProgress && (
-                <span
-                  style={{
-                    fontSize: "0.7rem",
-                    background: "rgba(255, 153, 0, 0.2)",
-                    color: "#FFB84D",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    fontWeight: 800,
-                  }}
-                >
-                  {raProgress.unlocked_achievements}/{raProgress.total_achievements}
-                </span>
-              )}
-            </button>
+            {Boolean(currentGame.is_emulator) && (
+              <button
+                className={`details-subtab-btn ${activeTab === "achievements" ? "active" : ""}`}
+                onClick={() => setActiveTab("achievements")}
+                style={{
+                  color: activeTab === "achievements" ? "#FFB84D" : undefined,
+                  borderColor: activeTab === "achievements" ? "#FF9900" : undefined,
+                }}
+              >
+                <Trophy size={15} color="#FF9900" />
+                <span>RetroAchievements</span>
+                {raProgress && (
+                  <span
+                    style={{
+                      fontSize: "0.7rem",
+                      background: "rgba(255, 153, 0, 0.2)",
+                      color: "#FFB84D",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {raProgress.unlocked_achievements}/{raProgress.total_achievements}
+                  </span>
+                )}
+              </button>
+            )}
 
             <button
               className={`details-subtab-btn ${activeTab === "saves" ? "active" : ""}`}
@@ -905,6 +940,24 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
               <hr style={{ borderColor: "var(--border-subtle)", margin: "8px 0" }} />
 
+              {/* EDIT GAME PRIMARY BUTTON */}
+              <button
+                className="btn-primary"
+                onClick={() => setIsEditModalOpen(true)}
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  gap: "8px",
+                  fontSize: "0.85rem",
+                  padding: "10px 16px",
+                  fontWeight: 700,
+                  boxShadow: "0 4px 14px rgba(0, 229, 255, 0.2)",
+                }}
+              >
+                <Pencil size={16} />
+                <span>Editar Dados do Jogo</span>
+              </button>
+
               {/* AUTO SCRAPER ART UPDATE BUTTON */}
               <button
                 className="btn-secondary"
@@ -978,8 +1031,8 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           </div>
           )}
 
-          {/* TAB 2: RETROACHIEVEMENTS */}
-          {activeTab === "achievements" && (
+          {/* TAB 2: RETROACHIEVEMENTS (APENAS PARA JOGOS EMULADOS) */}
+          {activeTab === "achievements" && Boolean(currentGame.is_emulator) && (
             <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: "20px" }}>
               {raLoading ? (
                 <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
@@ -1950,6 +2003,22 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* EDIT GAME MODAL */}
+      <EditGameModal
+        game={currentGame}
+        platforms={platforms}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onGameUpdated={async () => {
+          await loadDetails(currentGame.id);
+          if (onGameUpdated) onGameUpdated();
+        }}
+        steamGridDbKey={steamGridDbKey}
+        igdbApiKey={igdbApiKey}
+        igdbClientId={igdbClientId}
+        igdbClientSecret={igdbClientSecret}
+      />
     </>
   );
 };

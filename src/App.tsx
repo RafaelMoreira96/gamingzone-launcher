@@ -7,6 +7,7 @@ import { Sidebar } from "./components/Sidebar";
 import { GameCard } from "./components/GameCard";
 import { AddGameModal } from "./components/AddGameModal";
 import { GameDetailsModal } from "./components/GameDetailsModal";
+import { EditGameModal } from "./components/EditGameModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { ReplayView } from "./components/ReplayView";
 import { BigPictureMode } from "./components/BigPictureMode";
@@ -51,6 +52,8 @@ export const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedRaGame, setSelectedRaGame] = useState<Game | null>(null);
 
   // Settings State with LocalStorage Persistence
@@ -225,6 +228,12 @@ export const App: React.FC = () => {
   const handleCardClick = (game: Game) => {
     setSelectedGame(game);
     setIsDetailsModalOpen(true);
+  };
+
+  const handleEditGame = (game: Game, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingGame(game);
+    setIsEditModalOpen(true);
   };
 
   // Aggregated Counts
@@ -650,7 +659,9 @@ export const App: React.FC = () => {
                     onLaunch={handleLaunch}
                     onStop={handleStop}
                     onToggleFavorite={handleToggleFavorite}
+                    onEdit={handleEditGame}
                     onOpenAchievements={(g) => {
+                      if (!g.is_emulator) return;
                       setSelectedRaGame(g);
                       setCurrentView("achievements");
                     }}
@@ -691,6 +702,7 @@ export const App: React.FC = () => {
       <ErrorBoundary fallbackTitle="Erro ao exibir detalhes do jogo">
         <GameDetailsModal
           game={selectedGame}
+          platforms={platforms}
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
           onLaunch={handleLaunch}
@@ -706,6 +718,29 @@ export const App: React.FC = () => {
           raApiKey={settings.raApiKey}
         />
       </ErrorBoundary>
+
+      {/* MODAL EDITAR JOGO */}
+      <EditGameModal
+        game={editingGame}
+        platforms={platforms}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingGame(null);
+        }}
+        onGameUpdated={() => {
+          loadGames();
+          if (selectedGame && editingGame && selectedGame.id === editingGame.id) {
+            api.getGameDetails(selectedGame.id).then((d) => {
+              if (d?.game) setSelectedGame(d.game);
+            });
+          }
+        }}
+        steamGridDbKey={settings.steamGridDbApiKey}
+        igdbApiKey={settings.igdbApiKey || settings.igdbClientId}
+        igdbClientId={settings.igdbClientId}
+        igdbClientSecret={settings.igdbClientSecret}
+      />
 
       {/* MODAL DE CONFIGURAÇÕES (TEMAS, ACESSIBILIDADE, GESTÃO DE PLATAFORMAS) */}
       <SettingsModal

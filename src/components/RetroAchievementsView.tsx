@@ -1416,12 +1416,14 @@ export const RetroAchievementsView: React.FC<RetroAchievementsViewProps> = ({
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="Jogos da Biblioteca Local">
-                  {games.map((g) => (
-                    <option key={`local-${g.id}`} value={g.id}>
-                      {g.title} ({g.platform_name || g.original_platform_id.toUpperCase()})
-                    </option>
-                  ))}
+                <optgroup label="Jogos Emulados da Biblioteca">
+                  {games
+                    .filter((g) => Boolean(g.is_emulator))
+                    .map((g) => (
+                      <option key={`local-${g.id}`} value={g.id}>
+                        {g.title} ({g.platform_name || g.original_platform_id.toUpperCase()})
+                      </option>
+                    ))}
                 </optgroup>
               </select>
             </div>
