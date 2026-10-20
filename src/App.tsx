@@ -13,6 +13,7 @@ import { BigPictureMode } from "./components/BigPictureMode";
 import { BatchImportModal } from "./components/BatchImportModal";
 import { RetroAchievementsView } from "./components/RetroAchievementsView";
 import { ConsoleIcon } from "./components/ConsoleIcon";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: "midnight",
@@ -687,22 +688,24 @@ export const App: React.FC = () => {
       />
 
       {/* MODAL DETALHES DO JOGO & HISTÓRICO */}
-      <GameDetailsModal
-        game={selectedGame}
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-        onLaunch={handleLaunch}
-        onStop={handleStop}
-        onGameDeleted={loadGames}
-        onToggleFavorite={handleToggleFavorite}
-        onGameUpdated={loadGames}
-        steamGridDbKey={settings.steamGridDbApiKey}
-        igdbApiKey={settings.igdbApiKey || settings.igdbClientId}
-        igdbClientId={settings.igdbClientId}
-        igdbClientSecret={settings.igdbClientSecret}
-        raUsername={settings.raUsername}
-        raApiKey={settings.raApiKey}
-      />
+      <ErrorBoundary fallbackTitle="Erro ao exibir detalhes do jogo">
+        <GameDetailsModal
+          game={selectedGame}
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          onLaunch={handleLaunch}
+          onStop={handleStop}
+          onGameDeleted={loadGames}
+          onToggleFavorite={handleToggleFavorite}
+          onGameUpdated={loadGames}
+          steamGridDbKey={settings.steamGridDbApiKey}
+          igdbApiKey={settings.igdbApiKey || settings.igdbClientId}
+          igdbClientId={settings.igdbClientId}
+          igdbClientSecret={settings.igdbClientSecret}
+          raUsername={settings.raUsername}
+          raApiKey={settings.raApiKey}
+        />
+      </ErrorBoundary>
 
       {/* MODAL DE CONFIGURAÇÕES (TEMAS, ACESSIBILIDADE, GESTÃO DE PLATAFORMAS) */}
       <SettingsModal

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   Play,
@@ -154,17 +154,14 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   const sessions = details?.sessions || [];
   const platformColor = currentGame.platform_brand_color || "#00E5FF";
 
-  const maxSessionSeconds = useMemo(() => {
-    if (!sessions || sessions.length === 0) return 60;
-    return Math.max(...sessions.map((s) => s.duration_seconds || 0), 60);
-  }, [sessions]);
+  const maxSessionSeconds = sessions.length > 0
+    ? Math.max(...sessions.map((s) => s.duration_seconds || 0), 60)
+    : 60;
 
-  const totalSessionsDuration = useMemo(() => {
-    if (!sessions || sessions.length === 0) return 0;
-    return sessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
-  }, [sessions]);
+  const totalSessionsDuration = sessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
 
-  const formatSessionDate = (isoString: string) => {
+  const formatSessionDate = (isoString?: string) => {
+    if (!isoString) return { relative: "Data desconhecida", time: "", fullDate: "—" };
     try {
       const d = new Date(isoString);
       if (isNaN(d.getTime())) return { relative: isoString, time: "", fullDate: isoString };
@@ -191,6 +188,39 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       return { relative: dateStr, time: timeStr, fullDate: dateStr };
     } catch {
       return { relative: isoString, time: "", fullDate: isoString };
+    }
+  };
+
+  const formatSessionTime = (isoString?: string) => {
+    if (!isoString) return "";
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  };
+
+  const formatDateSafe = (isoString?: string | null, fallback = "Nunca jogado") => {
+    if (!isoString) return fallback;
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return fallback;
+      return d.toLocaleDateString("pt-BR");
+    } catch {
+      return fallback;
+    }
+  };
+
+  const formatDateTimeSafe = (isoString?: string | null, fallback = "") => {
+    if (!isoString) return fallback;
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return fallback;
+      return d.toLocaleString("pt-BR");
+    } catch {
+      return fallback;
     }
   };
 
@@ -658,9 +688,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 <div className="stat-box">
                   <span className="stat-box-label">Última Execução</span>
                   <span className="stat-box-val" style={{ fontSize: "1rem" }}>
-                    {currentGame.last_played_at
-                      ? new Date(currentGame.last_played_at).toLocaleDateString("pt-BR")
-                      : "Nunca jogado"}
+                    {formatDateSafe(currentGame.last_played_at)}
                   </span>
                 </div>
               </div>
@@ -789,13 +817,9 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             <div className="timeline-card-footer">
                               <span className="timeline-detail-text">
                                 Início: {dateInfo.fullDate} {dateInfo.time ? `às ${dateInfo.time}` : ""}
-                                {sess.ended_at && (
+                                {sess.ended_at && formatSessionTime(sess.ended_at) && (
                                   <>
-                                    {" • "}Término:{" "}
-                                    {new Date(sess.ended_at).toLocaleTimeString("pt-BR", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
+                                    {" • "}Término: {formatSessionTime(sess.ended_at)}
                                   </>
                                 )}
                               </span>
@@ -1210,7 +1234,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             </p>
                             {ach.date_unlocked && (
                               <span style={{ fontSize: "0.7rem", color: "var(--accent-green)", marginTop: "4px", display: "inline-block" }}>
-                                Desbloqueada em {new Date(ach.date_unlocked).toLocaleString("pt-BR")}
+                                Desbloqueada em {formatDateTimeSafe(ach.date_unlocked)}
                               </span>
                             )}
                           </div>
@@ -1436,7 +1460,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             {bk.note || "Backup Automático"}
                           </div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px", display: "flex", gap: "12px" }}>
-                            <span>📅 {new Date(bk.created_at).toLocaleString("pt-BR")}</span>
+                            <span>📅 {formatDateTimeSafe(bk.created_at)}</span>
                             <span>📦 {(bk.size_bytes / 1024).toFixed(1)} KB</span>
                             <span>📄 {bk.file_count} {bk.file_count === 1 ? "arquivo" : "arquivos"}</span>
                           </div>
