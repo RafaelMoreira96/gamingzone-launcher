@@ -94,28 +94,31 @@ impl ProcessManager {
             exe_path.parent().unwrap_or(Path::new("."))
         };
 
-        // Parse launch arguments
+        // Parse launch arguments with quote and whitespace awareness
         let mut final_args = Vec::new();
         let raw_args = game.launch_arguments.trim();
 
         if game.is_emulator {
             if let Some(rom) = &game.rom_path {
-                if !rom.trim().is_empty() {
+                let rom_clean = rom.trim();
+                if !rom_clean.is_empty() {
                     if raw_args.contains("{rom}") || raw_args.contains("%ROM%") {
-                        let replaced = raw_args.replace("{rom}", rom).replace("%ROM%", rom);
-                        final_args.extend(replaced.split_whitespace().map(|s| s.to_string()));
+                        let replaced = raw_args
+                            .replace("{rom}", rom_clean)
+                            .replace("%ROM%", rom_clean);
+                        final_args = parse_command_line_args(&replaced);
                     } else if !raw_args.is_empty() {
-                        final_args.extend(raw_args.split_whitespace().map(|s| s.to_string()));
-                        final_args.push(rom.clone());
+                        final_args = parse_command_line_args(raw_args);
+                        final_args.push(rom_clean.to_string());
                     } else {
-                        final_args.push(rom.clone());
+                        final_args.push(rom_clean.to_string());
                     }
                 }
             } else if !raw_args.is_empty() {
-                final_args.extend(raw_args.split_whitespace().map(|s| s.to_string()));
+                final_args = parse_command_line_args(raw_args);
             }
         } else if !raw_args.is_empty() {
-            final_args.extend(raw_args.split_whitespace().map(|s| s.to_string()));
+            final_args = parse_command_line_args(raw_args);
         }
 
         let mut cmd = Command::new(actual_exe);
@@ -238,6 +241,16 @@ impl ProcessManager {
     pub fn kill_game(&self, app_handle: AppHandle, game_id: &str) -> Result<(), String> {
         let mut lock = self.running_games.lock().unwrap();
         if let Some(mut active) = lock.remove(game_id) {
+            let pid = active.child.id();
+
+            #[cfg(target_os = "windows")]
+            {
+                let _ = std::process::Command::new("taskkill")
+                    .args(["/F", "/T", "/PID", &pid.to_string()])
+                    .spawn()
+                    .and_then(|mut c| c.wait());
+            }
+
             let _ = active.child.kill();
             let elapsed_secs = active.start_instant.elapsed().as_secs();
 
@@ -263,5 +276,81 @@ impl ProcessManager {
         } else {
             Err("O jogo especificado não está em execução.".to_string())
         }
+    }
+}
+
+/// Tokenizes a command line string into separate arguments, respecting double and single quotes.
+/// Prevents splitting file paths with spaces into separate broken tokens.
+pub fn parse_command_line_args(input: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut quote_char = '"';
+    let mut chars = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                if let Some(&next) = chars.peek() {
+                    if next == '"' || next == '\'' || next == '\\' {
+                        current.push(next);
+                        chars.next();
+                    } else {
+                        current.push('\\');
+                    }
+                } else {
+                    current.push('\\');
+                }
+            }
+            '"' | '\'' => {
+                if in_quotes {
+                    if c == quote_char {
+                        in_quotes = false;
+                    } else {
+                        current.push(c);
+                    }
+                } else {
+                    in_quotes = true;
+                    quote_char = c;
+                }
+            }
+            c if c.is_whitespace() => {
+                if in_quotes {
+                    current.push(c);
+                } else if !current.is_empty() {
+                    args.push(current);
+                    current = String::new();
+                }
+            }
+            c => {
+                current.push(c);
+            }
+        }
+    }
+
+    if !current.is_empty() {
+        args.push(current);
+    }
+
+    args
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_command_line_args() {
+        let cmd = r#"-batch -fullscreen "D:\Jogos\PS2\God of War II.iso" --volume=100"#;
+        let parsed = parse_command_line_args(cmd);
+        assert_eq!(
+            parsed,
+            vec![
+                "-batch".to_string(),
+                "-fullscreen".to_string(),
+                r#"D:\Jogos\PS2\God of War II.iso"#.to_string(),
+                "--volume=100".to_string()
+            ]
+        );
     }
 }

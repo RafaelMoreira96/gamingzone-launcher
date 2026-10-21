@@ -91,6 +91,7 @@ export type CardSizeType = 'compact' | 'normal' | 'spacious';
 export type ControllerPromptType = 'xbox' | 'playstation' | 'nintendo';
 export type BigPictureTheme = 'steam' | 'xbox' | 'playstation' | 'nintendo';
 export type CardBadgePreference = 'auto' | 'platform' | 'recomp';
+export type LibrarySortBy = 'recent' | 'playtime' | 'name-asc' | 'name-desc' | 'added';
 
 export interface AppSettings {
   theme: ThemeType;
@@ -114,6 +115,7 @@ export interface AppSettings {
   cardBadgePreference?: CardBadgePreference;
   ambientMusicEnabled?: boolean;
   ambientMusicVolume?: number;
+  librarySortBy?: LibrarySortBy;
 }
 
 export interface IgdbGameMetadata {

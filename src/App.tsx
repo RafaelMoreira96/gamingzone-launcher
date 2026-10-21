@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Gamepad2, Settings, Flame, Tv, FolderUp, Cpu, Layers, Volume2, VolumeX, Trophy } from "lucide-react";
-import { AppSettings, Game, Platform, PlayStatusType } from "./types";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Search, Gamepad2, Settings, Flame, Tv, FolderUp, Cpu, Layers, Volume2, VolumeX, Trophy, ArrowUpDown } from "lucide-react";
+import { AppSettings, Game, Platform, PlayStatusType, LibrarySortBy } from "./types";
 import { api } from "./services/api";
 import { ambientAudio } from "./services/ambientAudio";
 import { Sidebar } from "./components/Sidebar";
@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   bigPictureTheme: "steam",
   cardBadgePreference: "auto",
   startInBigPicture: false,
+  librarySortBy: "name-asc",
 };
 
 export const App: React.FC = () => {
@@ -66,6 +67,16 @@ export const App: React.FC = () => {
     }
     return DEFAULT_SETTINGS;
   });
+
+  const [sortBy, setSortBy] = useState<LibrarySortBy>(() => {
+    return settings.librarySortBy || "name-asc";
+  });
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSortChange = (newSort: LibrarySortBy) => {
+    setSortBy(newSort);
+    updateSettings({ librarySortBy: newSort });
+  };
 
   // Apply settings to DOM
   useEffect(() => {
@@ -213,17 +224,25 @@ export const App: React.FC = () => {
     }
   };
 
-  // Keyboard shortcut F11 for Big Picture
+  // Keyboard shortcuts: F11 for Big Picture, Ctrl+F for search focus, Escape to clear search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F11") {
         e.preventDefault();
         handleToggleBigPicture(!isBigPicture);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else if (e.key === "Escape") {
+        if (searchQuery) {
+          setSearchQuery("");
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isBigPicture]);
+  }, [isBigPicture, searchQuery]);
 
   const handleCardClick = (game: Game) => {
     setSelectedGame(game);
@@ -255,9 +274,9 @@ export const App: React.FC = () => {
     return totalSecs / 3600;
   }, [games]);
 
-  // Filtered games
+  // Filtered and sorted games
   const filteredGames = useMemo(() => {
-    return games.filter((game) => {
+    const list = games.filter((game) => {
       const matchesPlatform =
         selectedPlatformId === null || game.original_platform_id === selectedPlatformId;
       const matchesSearch =
@@ -277,7 +296,35 @@ export const App: React.FC = () => {
 
       return matchesPlatform && matchesSearch && matchesType && matchesFavorite && matchesStatus;
     });
-  }, [games, selectedPlatformId, searchQuery, typeFilter, onlyFavorites, statusFilter]);
+
+    return list.sort((a, b) => {
+      switch (sortBy) {
+        case "recent": {
+          const aTime = a.last_played_at ? new Date(a.last_played_at).getTime() : 0;
+          const bTime = b.last_played_at ? new Date(b.last_played_at).getTime() : 0;
+          if (bTime !== aTime) return bTime - aTime;
+          return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+        }
+        case "playtime": {
+          if (b.total_playtime_seconds !== a.total_playtime_seconds) {
+            return b.total_playtime_seconds - a.total_playtime_seconds;
+          }
+          return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+        }
+        case "name-desc":
+          return b.title.localeCompare(a.title, undefined, { sensitivity: "base" });
+        case "added": {
+          const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+          if (bCreated !== aCreated) return bCreated - aCreated;
+          return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+        }
+        case "name-asc":
+        default:
+          return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+      }
+    });
+  }, [games, selectedPlatformId, searchQuery, typeFilter, onlyFavorites, statusFilter, sortBy]);
 
   const activePlatform = platforms.find((p) => p.id === selectedPlatformId);
 
@@ -359,12 +406,47 @@ export const App: React.FC = () => {
           <div className="search-box-wrapper">
             <Search size={18} color="var(--text-muted)" />
             <input
+              ref={searchInputRef}
               type="text"
               className="search-input"
               placeholder="Buscar por título, console de origem, port ou emulador..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "0 4px",
+                  fontSize: "0.85rem",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Limpar busca (Esc)"
+              >
+                ✕
+              </button>
+            ) : (
+              <span
+                style={{
+                  fontSize: "0.68rem",
+                  color: "var(--text-muted)",
+                  background: "rgba(255, 255, 255, 0.06)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  userSelect: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Ctrl+F
+              </span>
+            )}
           </div>
 
           <div className="top-actions">
@@ -505,29 +587,49 @@ export const App: React.FC = () => {
                 </p>
               </div>
 
-              {/* SEGMENTED CONTROL: TIPO DE JOGO */}
-              <div className="type-toggle-bar">
-                <button
-                  className={`type-toggle-btn ${typeFilter === "all" ? "active" : ""}`}
-                  onClick={() => setTypeFilter("all")}
-                >
-                  <Layers size={14} />
-                  <span>Todos ({games.length})</span>
-                </button>
-                <button
-                  className={`type-toggle-btn recomp ${typeFilter === "recomp" ? "active" : ""}`}
-                  onClick={() => setTypeFilter("recomp")}
-                >
-                  <Cpu size={14} />
-                  <span>Recomps PC ({recompCount})</span>
-                </button>
-                <button
-                  className={`type-toggle-btn emulator ${typeFilter === "emulator" ? "active" : ""}`}
-                  onClick={() => setTypeFilter("emulator")}
-                >
-                  <Gamepad2 size={14} />
-                  <span>Emuladores ({emulatorCount})</span>
-                </button>
+              <div className="library-header-actions">
+                {/* SORT SELECTOR */}
+                <div className="sort-selector-container">
+                  <ArrowUpDown size={14} className="sort-selector-icon" />
+                  <select
+                    className="sort-selector-dropdown"
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value as LibrarySortBy)}
+                    title="Ordenar biblioteca"
+                    aria-label="Critério de ordenação da biblioteca"
+                  >
+                    <option value="name-asc">Nome (A - Z)</option>
+                    <option value="name-desc">Nome (Z - A)</option>
+                    <option value="recent">Mais Recentes Jogados</option>
+                    <option value="playtime">Mais Tempo Jogado</option>
+                    <option value="added">Adicionados Recentemente</option>
+                  </select>
+                </div>
+
+                {/* SEGMENTED CONTROL: TIPO DE JOGO */}
+                <div className="type-toggle-bar">
+                  <button
+                    className={`type-toggle-btn ${typeFilter === "all" ? "active" : ""}`}
+                    onClick={() => setTypeFilter("all")}
+                  >
+                    <Layers size={14} />
+                    <span>Todos ({games.length})</span>
+                  </button>
+                  <button
+                    className={`type-toggle-btn recomp ${typeFilter === "recomp" ? "active" : ""}`}
+                    onClick={() => setTypeFilter("recomp")}
+                  >
+                    <Cpu size={14} />
+                    <span>Recomps PC ({recompCount})</span>
+                  </button>
+                  <button
+                    className={`type-toggle-btn emulator ${typeFilter === "emulator" ? "active" : ""}`}
+                    onClick={() => setTypeFilter("emulator")}
+                  >
+                    <Gamepad2 size={14} />
+                    <span>Emuladores ({emulatorCount})</span>
+                  </button>
+                </div>
               </div>
             </div>
 

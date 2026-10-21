@@ -351,9 +351,69 @@ button, input, select, textarea {
 
 .library-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 22px;
+}
+
+.library-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sort-selector-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 5px 12px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sort-selector-container:focus-within,
+.sort-selector-container:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sort-selector-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.sort-selector-container:hover .sort-selector-icon,
+.sort-selector-container:focus-within .sort-selector-icon {
+  color: var(--accent-cyan, #00e5ff);
+}
+
+.sort-selector-dropdown {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  outline: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px 0;
+  font-family: inherit;
+  transition: color 0.2s ease;
+}
+
+.sort-selector-dropdown:focus {
+  color: #fff;
+}
+
+.sort-selector-dropdown option {
+  background: #111827;
+  color: #f1f5f9;
+  padding: 8px;
 }
 
 .library-title {
