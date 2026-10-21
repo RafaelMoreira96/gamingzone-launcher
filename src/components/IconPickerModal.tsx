@@ -94,8 +94,8 @@ export const IconPickerModal: React.FC<IconPickerModalProps> = ({
 
   return (
     <div
-      className="modal-backdrop"
-      style={{ zIndex: 1200, background: "rgba(3, 5, 9, 0.85)", backdropFilter: "blur(6px)" }}
+      className="modal-backdrop nested"
+      style={{ zIndex: 35000, background: "rgba(3, 5, 9, 0.85)", backdropFilter: "blur(6px)" }}
       onClick={onClose}
     >
       <div

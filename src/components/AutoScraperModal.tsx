@@ -83,7 +83,7 @@ export const AutoScraperModal: React.FC<AutoScraperModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop nested" onClick={onClose} style={{ zIndex: 30000 }}>
+    <div className="modal-backdrop nested" onClick={onClose} style={{ zIndex: 45000 }}>
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}

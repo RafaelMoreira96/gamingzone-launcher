@@ -1683,7 +1683,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
       {/* MANUAL ART CUSTOMIZATION MODAL */}
       {isManualArtOpen && (
-        <div className="modal-backdrop nested" style={{ zIndex: 30000 }} onClick={() => setIsManualArtOpen(false)}>
+        <div className="modal-backdrop nested" style={{ zIndex: 35000 }} onClick={() => setIsManualArtOpen(false)}>
           <div
             className="modal-content"
             style={{

@@ -221,7 +221,7 @@ export const EditGameModal: React.FC<EditGameModalProps> = ({
 
   return (
     <>
-      <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 12000 }}>
+      <div className="modal-backdrop nested" onClick={onClose} style={{ zIndex: 35000 }}>
         <div
           className="modal-content"
           onClick={(e) => e.stopPropagation()}
