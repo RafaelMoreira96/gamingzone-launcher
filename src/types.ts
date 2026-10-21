@@ -124,6 +124,7 @@ export interface IgdbGameMetadata {
   release_year?: number;
   cover_url?: string;
   banner_url?: string;
+  extra_banners?: string[];
   platforms: string[];
   genres: string[];
   rating?: number;

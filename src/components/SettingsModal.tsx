@@ -146,14 +146,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // IGDB Test State
   const [igdbTesting, setIgdbTesting] = useState(false);
   const [igdbStatus, setIgdbStatus] = useState<{ success: boolean; message: string } | null>(null);
-  const [showAdvancedIgdb, setShowAdvancedIgdb] = useState(false);
 
   const handleTestIgdb = async () => {
-    const keyToTest = (settings.igdbApiKey || settings.igdbClientId || "").trim();
-    if (!keyToTest) {
+    const keyToTest = (settings.igdbClientId || settings.igdbApiKey || "").trim();
+    const secretToTest = (settings.igdbClientSecret || "").trim();
+
+    if (!keyToTest && !secretToTest) {
       setIgdbStatus({
         success: false,
-        message: "Informe sua Chave de API do IGDB antes de realizar o teste.",
+        message: "Informe seu Client ID e Client Secret do IGDB antes de realizar o teste.",
       });
       return;
     }
@@ -162,7 +163,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     try {
       const res = await api.testIgdbConnection(
         keyToTest,
-        settings.igdbClientSecret?.trim() || undefined
+        secretToTest || undefined
       );
       setIgdbStatus({ success: true, message: res });
     } catch (err: any) {
@@ -1358,75 +1359,54 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </a>
                 </div>
 
-                {/* Primary single API key field */}
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
-                    Chave de API do IGDB (Token de Acesso ou Chave Única):
-                  </label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    placeholder="Cole sua API Key do IGDB aqui (ex: token Twitch ou CLIENT_ID:SECRET)..."
-                    value={settings.igdbApiKey || settings.igdbClientId || ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      onUpdateSettings({ igdbApiKey: val, igdbClientId: val });
-                    }}
-                  />
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
-                    Você só precisa fornecer esta chave para que o launcher busque automaticamente capas oficiais, banners e metadados no IGDB para todos os seus jogos recompilados e emulados.
-                  </span>
+                {/* Client ID & Client Secret fields */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
+                      Twitch / IGDB Client ID:
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Ex: uo6dgg4p4e8o6pcvuiku8jiku..."
+                      value={settings.igdbClientId || settings.igdbApiKey || ""}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        if (val.includes(":") || val.includes("|")) {
+                          const sep = val.includes(":") ? ":" : "|";
+                          const parts = val.split(sep);
+                          onUpdateSettings({
+                            igdbClientId: parts[0].trim(),
+                            igdbClientSecret: parts[1]?.trim() || "",
+                            igdbApiKey: parts[0].trim(),
+                          });
+                        } else {
+                          onUpdateSettings({ igdbClientId: val, igdbApiKey: val });
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
+                      Twitch / IGDB Client Secret:
+                    </label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="Ex: 5k28asdf9834..."
+                      value={settings.igdbClientSecret || ""}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        onUpdateSettings({ igdbClientSecret: val });
+                      }}
+                    />
+                  </div>
                 </div>
 
-                {/* Advanced configuration toggle */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvancedIgdb(!showAdvancedIgdb)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "var(--accent-purple)",
-                      fontSize: "0.76rem",
-                      cursor: "pointer",
-                      padding: 0,
-                      textDecoration: "underline",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {showAdvancedIgdb ? "▼ Ocultar campos separados de Client ID / Secret" : "▶ Configuração avançada (Client ID e Client Secret separados)"}
-                  </button>
-
-                  {showAdvancedIgdb && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "10px" }}>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label" style={{ fontSize: "0.78rem" }}>
-                          IGDB Client ID:
-                        </label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="Ex: uo6dgg4p4e8..."
-                          value={settings.igdbClientId || ""}
-                          onChange={(e) => onUpdateSettings({ igdbClientId: e.target.value })}
-                        />
-                      </div>
-
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label" style={{ fontSize: "0.78rem" }}>
-                          IGDB Client Secret:
-                        </label>
-                        <input
-                          type="password"
-                          className="form-input"
-                          placeholder="Ex: 5k28asdf..."
-                          value={settings.igdbClientSecret || ""}
-                          onChange={(e) => onUpdateSettings({ igdbClientSecret: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0, display: "block" }}>
+                  Você também pode colar no formato <code style={{ color: "#D48BFF" }}>CLIENT_ID:CLIENT_SECRET</code> ou um token de acesso da Twitch diretamente no primeiro campo.
+                </span>
 
                 <div
                   style={{

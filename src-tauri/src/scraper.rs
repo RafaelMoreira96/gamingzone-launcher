@@ -1,5 +1,16 @@
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+use std::time::Instant;
+
+struct IgdbCachedToken {
+    client_id: String,
+    client_secret: String,
+    access_token: String,
+    expires_at: Instant,
+}
+
+static IGDB_TOKEN_CACHE: Mutex<Option<IgdbCachedToken>> = Mutex::new(None);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScrapedAsset {
@@ -25,6 +36,8 @@ pub struct IgdbGameMetadata {
     pub release_year: Option<i32>,
     pub cover_url: Option<String>,
     pub banner_url: Option<String>,
+    #[serde(default)]
+    pub extra_banners: Vec<String>,
     pub platforms: Vec<String>,
     pub genres: Vec<String>,
     pub rating: Option<f64>,
@@ -204,22 +217,40 @@ pub fn search_game_assets(
     let igdb_key = igdb_client_id.unwrap_or("").trim();
     let igdb_sec = igdb_client_secret.unwrap_or("").trim();
     if !igdb_key.is_empty() || !igdb_sec.is_empty() {
-        let primary_key = if !igdb_key.is_empty() { igdb_key } else { igdb_sec };
-        let opt_sec = if !igdb_sec.is_empty() && igdb_sec != primary_key {
-            Some(igdb_sec)
+        let (primary_key, opt_sec) = if !igdb_key.is_empty() && !igdb_sec.is_empty() {
+            (igdb_key, Some(igdb_sec))
+        } else if !igdb_key.is_empty() {
+            (igdb_key, None)
         } else {
-            None
+            (igdb_sec, None)
         };
-        if let Ok(igdb_games) = query_igdb_games(&q_lower, primary_key, opt_sec) {
-            for g in igdb_games {
-                let plat_hint = g.platforms.first().cloned();
-                results.push(ScrapedAsset {
-                    title: g.name,
-                    cover_url: g.cover_url,
-                    banner_url: g.banner_url,
-                    source: "IGDB".to_string(),
-                    platform_hint: plat_hint,
-                });
+        match query_igdb_games(&q_lower, primary_key, opt_sec) {
+            Ok(igdb_games) => {
+                for g in igdb_games {
+                    let plat_hint = g.platforms.first().cloned();
+                    // Primary cover + hero banner
+                    results.push(ScrapedAsset {
+                        title: g.name.clone(),
+                        cover_url: g.cover_url.clone(),
+                        banner_url: g.banner_url.clone(),
+                        source: "IGDB".to_string(),
+                        platform_hint: plat_hint.clone(),
+                    });
+
+                    // Extra banner variations from IGDB artworks/screenshots
+                    for (idx, extra_banner) in g.extra_banners.iter().take(2).enumerate() {
+                        results.push(ScrapedAsset {
+                            title: format!("{} (Arte Alternativa #{})", g.name, idx + 2),
+                            cover_url: g.cover_url.clone(),
+                            banner_url: Some(extra_banner.clone()),
+                            source: "IGDB".to_string(),
+                            platform_hint: plat_hint.clone(),
+                        });
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("[IGDB Scraper] Erro ao buscar jogos no IGDB: {}", e);
             }
         }
     }
@@ -373,6 +404,26 @@ fn urlencoding_simple(s: &str) -> String {
     encoded
 }
 
+fn validate_twitch_token(token: &str) -> Result<String, String> {
+    let clean_token = token.trim().trim_start_matches("Bearer ").trim();
+    let validate_url = "https://id.twitch.tv/oauth2/validate";
+    let resp = ureq::get(validate_url)
+        .set("Authorization", &format!("OAuth {}", clean_token))
+        .timeout(std::time::Duration::from_secs(8))
+        .call()
+        .map_err(|e| format!("Token inválido ou expirado da Twitch: {}", e))?;
+
+    let json: serde_json::Value = resp
+        .into_json()
+        .map_err(|e| format!("Resposta inválida do validador Twitch: {}", e))?;
+
+    if let Some(cid) = json.get("client_id").and_then(|v| v.as_str()) {
+        Ok(cid.to_string())
+    } else {
+        Err("Não foi possível extrair o Client ID do token Twitch informado".to_string())
+    }
+}
+
 pub fn resolve_igdb_auth(
     api_key_or_id: &str,
     optional_secret: Option<&str>,
@@ -396,12 +447,26 @@ pub fn resolve_igdb_auth(
 
     // Case 2: user entered separate client_id and client_secret
     if !key1.is_empty() && !key2.is_empty() {
-        // Test if key2 is already an access token or if we need to request OAuth token
-        if let Ok(token) = get_igdb_oauth_token(key1, key2) {
-            return Ok((key1.to_string(), token));
-        } else {
-            let direct_token = key2.trim_start_matches("Bearer ").trim();
-            return Ok((key1.to_string(), direct_token.to_string()));
+        // Try getting OAuth token with (key1 as id, key2 as secret)
+        match get_igdb_oauth_token(key1, key2) {
+            Ok(token) => return Ok((key1.to_string(), token)),
+            Err(_) => {
+                // Check if user inverted id and secret
+                if let Ok(token) = get_igdb_oauth_token(key2, key1) {
+                    return Ok((key2.to_string(), token));
+                }
+                // Check if key2 is already a valid Twitch access token
+                let direct_token_2 = key2.trim_start_matches("Bearer ").trim();
+                if let Ok(validated_cid) = validate_twitch_token(direct_token_2) {
+                    return Ok((validated_cid, direct_token_2.to_string()));
+                }
+                // Check if key1 is already a valid Twitch access token
+                let direct_token_1 = key1.trim_start_matches("Bearer ").trim();
+                if let Ok(validated_cid) = validate_twitch_token(direct_token_1) {
+                    return Ok((validated_cid, direct_token_1.to_string()));
+                }
+                return Err("Credenciais do IGDB inválidas. Verifique seu Client ID e Client Secret no Twitch Developer Console.".to_string());
+            }
         }
     }
 
@@ -409,25 +474,11 @@ pub fn resolve_igdb_auth(
     let single_key = if !key1.is_empty() { key1 } else { key2 };
     let clean_token = single_key.trim_start_matches("Bearer ").trim();
 
-    // Query Twitch validate endpoint to retrieve the client_id associated with this token
-    let validate_url = "https://id.twitch.tv/oauth2/validate";
-    let resp = ureq::get(validate_url)
-        .set("Authorization", &format!("OAuth {}", clean_token))
-        .timeout(std::time::Duration::from_secs(8))
-        .call();
-
-    match resp {
-        Ok(r) => {
-            if let Ok(json) = r.into_json::<serde_json::Value>() {
-                if let Some(cid) = json.get("client_id").and_then(|v| v.as_str()) {
-                    return Ok((cid.to_string(), clean_token.to_string()));
-                }
-            }
-            Err("Chave do IGDB validada, mas não foi possível extrair o Client ID da Twitch.".to_string())
-        }
+    match validate_twitch_token(clean_token) {
+        Ok(cid) => Ok((cid, clean_token.to_string())),
         Err(e) => {
             Err(format!(
-                "Não foi possível validar a chave de API do IGDB/Twitch: {}. Se tiver Client ID e Secret, forneça-os ou use o formato 'CLIENT_ID:CLIENT_SECRET'.",
+                "Não foi possível autenticar o IGDB: {}. Se você possui Client ID e Client Secret separados, preencha ambos os campos.",
                 e
             ))
         }
@@ -441,15 +492,28 @@ pub fn get_igdb_oauth_token(client_id: &str, client_secret: &str) -> Result<Stri
         return Err("Client ID e Client Secret não podem estar vazios".to_string());
     }
 
-    let token_url = format!(
-        "https://id.twitch.tv/oauth2/token?client_id={}&client_secret={}&grant_type=client_credentials",
+    // Check token cache first
+    if let Ok(guard) = IGDB_TOKEN_CACHE.lock() {
+        if let Some(cached) = &*guard {
+            if cached.client_id == id
+                && cached.client_secret == secret
+                && Instant::now() < cached.expires_at
+            {
+                return Ok(cached.access_token.clone());
+            }
+        }
+    }
+
+    let form_body = format!(
+        "client_id={}&client_secret={}&grant_type=client_credentials",
         urlencoding_simple(id),
         urlencoding_simple(secret)
     );
 
-    let resp = ureq::post(&token_url)
-        .timeout(std::time::Duration::from_secs(8))
-        .call()
+    let resp = ureq::post("https://id.twitch.tv/oauth2/token")
+        .set("Content-Type", "application/x-www-form-urlencoded")
+        .timeout(std::time::Duration::from_secs(10))
+        .send_string(&form_body)
         .map_err(|e| format!("Falha de autenticação com Twitch/IGDB: {}", e))?;
 
     let json: serde_json::Value = resp
@@ -457,6 +521,22 @@ pub fn get_igdb_oauth_token(client_id: &str, client_secret: &str) -> Result<Stri
         .map_err(|e| format!("Resposta inválida da Twitch: {}", e))?;
 
     if let Some(token) = json.get("access_token").and_then(|t| t.as_str()) {
+        let expires_in_secs = json
+            .get("expires_in")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(3600);
+        let safe_duration = std::time::Duration::from_secs(expires_in_secs.saturating_sub(60));
+        let expires_at = Instant::now() + safe_duration;
+
+        if let Ok(mut guard) = IGDB_TOKEN_CACHE.lock() {
+            *guard = Some(IgdbCachedToken {
+                client_id: id.to_string(),
+                client_secret: secret.to_string(),
+                access_token: token.to_string(),
+                expires_at,
+            });
+        }
+
         Ok(token.to_string())
     } else if let Some(msg) = json.get("message").and_then(|m| m.as_str()) {
         Err(format!("Twitch recusou credenciais: {}", msg))
@@ -468,16 +548,16 @@ pub fn get_igdb_oauth_token(client_id: &str, client_secret: &str) -> Result<Stri
 pub fn test_igdb_connection(api_key_or_id: &str, client_secret: Option<&str>) -> Result<String, String> {
     let (client_id, token) = resolve_igdb_auth(api_key_or_id, client_secret)?;
 
-    let test_body = "fields id; limit 1;";
+    let test_body = "fields id, name; limit 1;";
     let resp = ureq::post("https://api.igdb.com/v4/games")
         .set("Client-ID", &client_id)
         .set("Authorization", &format!("Bearer {}", token))
-        .timeout(std::time::Duration::from_secs(8))
+        .timeout(std::time::Duration::from_secs(10))
         .send_string(test_body)
         .map_err(|e| format!("Falha ao conectar à API do IGDB: {}", e))?;
 
     if resp.status() == 200 {
-        Ok("Chave de API do IGDB validada com sucesso! Conexão autorizada.".to_string())
+        Ok("Conexão com IGDB autorizada com sucesso! Capas e banners em alta definição prontos para uso.".to_string())
     } else {
         Err(format!("IGDB retornou status HTTP {}", resp.status()))
     }
@@ -495,14 +575,14 @@ pub fn query_igdb_games(
     }
 
     let body = format!(
-        "search \"{}\"; fields id, name, summary, storyline, first_release_date, platforms.name, cover.image_id, artworks.image_id, screenshots.image_id, genres.name, total_rating; limit 12;",
+        "search \"{}\"; fields id, name, summary, storyline, first_release_date, platforms.name, cover.image_id, artworks.image_id, screenshots.image_id, genres.name, total_rating; limit 15;",
         clean_query
     );
 
     let resp = ureq::post("https://api.igdb.com/v4/games")
         .set("Client-ID", &client_id)
         .set("Authorization", &format!("Bearer {}", token))
-        .timeout(std::time::Duration::from_secs(8))
+        .timeout(std::time::Duration::from_secs(10))
         .send_string(&body)
         .map_err(|e| format!("Erro na requisição IGDB: {}", e))?;
 
@@ -530,20 +610,38 @@ pub fn query_igdb_games(
                 .and_then(|v| v.as_str())
                 .map(|img_id| format!("https://images.igdb.com/igdb/image/upload/t_cover_big/{}.jpg", img_id));
 
-            let banner_url = g
-                .get("artworks")
-                .and_then(|a| a.as_array())
-                .and_then(|arr| arr.first())
-                .and_then(|item| item.get("image_id"))
-                .and_then(|v| v.as_str())
-                .or_else(|| {
-                    g.get("screenshots")
-                        .and_then(|s| s.as_array())
-                        .and_then(|arr| arr.first())
-                        .and_then(|item| item.get("image_id"))
-                        .and_then(|v| v.as_str())
-                })
-                .map(|img_id| format!("https://images.igdb.com/igdb/image/upload/t_1080p/{}.jpg", img_id));
+            let mut all_banners = Vec::new();
+
+            // Collect artworks as 1080p banners first
+            if let Some(artworks) = g.get("artworks").and_then(|a| a.as_array()) {
+                for art in artworks {
+                    if let Some(img_id) = art.get("image_id").and_then(|v| v.as_str()) {
+                        let url = format!("https://images.igdb.com/igdb/image/upload/t_1080p/{}.jpg", img_id);
+                        if !all_banners.contains(&url) {
+                            all_banners.push(url);
+                        }
+                    }
+                }
+            }
+
+            // Collect screenshots as 1080p banners
+            if let Some(screenshots) = g.get("screenshots").and_then(|s| s.as_array()) {
+                for ss in screenshots {
+                    if let Some(img_id) = ss.get("image_id").and_then(|v| v.as_str()) {
+                        let url = format!("https://images.igdb.com/igdb/image/upload/t_1080p/{}.jpg", img_id);
+                        if !all_banners.contains(&url) {
+                            all_banners.push(url);
+                        }
+                    }
+                }
+            }
+
+            let banner_url = all_banners.first().cloned();
+            let extra_banners = if all_banners.len() > 1 {
+                all_banners[1..].to_vec()
+            } else {
+                Vec::new()
+            };
 
             let mut platforms = Vec::new();
             if let Some(plats) = g.get("platforms").and_then(|p| p.as_array()) {
@@ -573,6 +671,7 @@ pub fn query_igdb_games(
                 release_year,
                 cover_url,
                 banner_url,
+                extra_banners,
                 platforms,
                 genres,
                 rating,

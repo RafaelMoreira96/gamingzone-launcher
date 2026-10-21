@@ -49,9 +49,15 @@ export const AutoScraperModal: React.FC<AutoScraperModalProps> = ({
 
     setIsLoading(true);
     setSearched(true);
-    const activeIgdb = (igdbApiKey || igdbClientId || "").trim();
+    const activeIgdb = (igdbClientId || igdbApiKey || "").trim();
+    const activeSec = (igdbClientSecret || "").trim();
     try {
-      const res = await api.scrapeGameAssets(term, steamGridDbKey, activeIgdb, igdbClientSecret);
+      const res = await api.scrapeGameAssets(
+        term,
+        steamGridDbKey?.trim() || undefined,
+        activeIgdb || undefined,
+        activeSec || undefined
+      );
       setResults(res.assets || []);
     } catch (err) {
       console.error("Erro no scraper de assets:", err);
@@ -60,6 +66,8 @@ export const AutoScraperModal: React.FC<AutoScraperModalProps> = ({
       setIsLoading(false);
     }
   };
+
+  const hasIgdbConfigured = Boolean((igdbClientId || igdbApiKey)?.trim());
 
   const filteredResults = results.filter((asset) => {
     if (sourceFilter === "all") return true;
@@ -96,7 +104,7 @@ export const AutoScraperModal: React.FC<AutoScraperModalProps> = ({
             <div>
               <h2 style={{ fontSize: "1.15rem", margin: 0 }}>Auto-Scraper de Capas & Banners</h2>
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0 }}>
-                Busca de artes em alta resolução (Catálogo Curado, IGDB, Steam CDN e SteamGridDB)
+                Busca de artes em alta resolução (IGDB v4, Catálogo Curado, Steam CDN e SteamGridDB)
               </p>
             </div>
           </div>
@@ -105,7 +113,29 @@ export const AutoScraperModal: React.FC<AutoScraperModalProps> = ({
           </button>
         </div>
 
-        <div className="modal-body" style={{ gap: "16px" }}>
+        <div className="modal-body" style={{ gap: "14px" }}>
+          {/* NOTICE IF IGDB NOT CONFIGURED */}
+          {!hasIgdbConfigured && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 12px",
+                background: "rgba(179, 71, 255, 0.08)",
+                border: "1px dashed rgba(179, 71, 255, 0.3)",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "0.78rem",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <Sparkles size={14} color="#B347FF" style={{ flexShrink: 0 }} />
+              <span>
+                <strong style={{ color: "#D48BFF" }}>Dica IGDB:</strong> Configure seu Client ID e Secret gratuitos da Twitch em <em>Configurações &gt; Integrações</em> para buscar capas verticais HD e banners 1080p oficiais de mais de 300.000 jogos no IGDB.
+              </span>
+            </div>
+          )}
+
           {/* SEARCH BAR */}
           <form
             onSubmit={(e) => {

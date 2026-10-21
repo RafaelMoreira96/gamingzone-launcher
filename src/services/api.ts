@@ -942,6 +942,13 @@ export const api = {
       query,
       assets: [
         {
+          title: query,
+          cover_url: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1t98.webp",
+          banner_url: "https://images.igdb.com/igdb/image/upload/t_1080p/co1t98.webp",
+          source: "IGDB",
+          platform_hint: "PlayStation 2",
+        },
+        {
           title: `${query} (Edição Especial)`,
           cover_url: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1t98.webp",
           banner_url: "https://images.alphacoders.com/600/600528.jpg",
