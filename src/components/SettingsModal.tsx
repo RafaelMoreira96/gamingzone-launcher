@@ -24,9 +24,9 @@ import {
   ChevronRight,
   Pencil,
 } from "lucide-react";
-import { AppSettings, CardSizeType, FontSizeType, FontFamilyType, Platform, ThemeType, RaUserProfile, ControllerPromptType, BigPictureTheme, CardBadgePreference } from "../types";
+import { AppSettings, CardSizeType, FontSizeType, FontFamilyType, Platform, ThemeType, RaUserProfile, ControllerPromptType, BigPictureTheme, CardBadgePreference, LoFiProfileType } from "../types";
 import { api } from "../services/api";
-import { ambientAudio } from "../services/ambientAudio";
+import { ambientAudio, LOFI_PROFILES } from "../services/ambientAudio";
 import { ConsoleIcon } from "./ConsoleIcon";
 import { IconPickerModal } from "./IconPickerModal";
 import { PlayStationButton, XboxButton, NintendoButton } from "./ControllerButton";
@@ -2040,6 +2040,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     borderRadius: "var(--radius-sm)",
                     opacity: settings.ambientMusicEnabled ? 1 : 0.45,
                     pointerEvents: settings.ambientMusicEnabled ? "auto" : "none",
+                    marginBottom: "16px",
                   }}
                 >
                   <Volume2 size={18} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
@@ -2070,6 +2071,90 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   >
                     {Math.round((settings.ambientMusicVolume ?? 0.25) * 100)}%
                   </span>
+                </div>
+
+                {/* Lo-Fi Profile Selector */}
+                <div style={{ marginTop: "14px" }}>
+                  <label
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "var(--text-secondary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      display: "block",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Estilo Sonoro / Perfil Lo-Fi
+                  </label>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                      gap: "10px",
+                    }}
+                  >
+                    {(Object.keys(LOFI_PROFILES) as LoFiProfileType[]).map((profId) => {
+                      const prof = LOFI_PROFILES[profId];
+                      const isSelected = (settings.ambientMusicProfile || "cozy-synth") === profId;
+                      return (
+                        <button
+                          key={prof.id}
+                          type="button"
+                          onClick={() => {
+                            onUpdateSettings({ ambientMusicProfile: prof.id });
+                            ambientAudio.setProfile(prof.id);
+                            if (!settings.ambientMusicEnabled) {
+                              onUpdateSettings({ ambientMusicEnabled: true, ambientMusicProfile: prof.id });
+                              ambientAudio.start(settings.ambientMusicVolume ?? 0.25, prof.id);
+                            }
+                          }}
+                          style={{
+                            textAlign: "left",
+                            background: isSelected ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
+                            border: `1.5px solid ${isSelected ? prof.color : "rgba(255, 255, 255, 0.08)"}`,
+                            borderRadius: "var(--radius-md)",
+                            padding: "12px",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                            <span style={{ fontWeight: 700, fontSize: "0.88rem", color: isSelected ? "#fff" : "var(--text-primary)" }}>
+                              {prof.name}
+                            </span>
+                            {isSelected && (
+                              <Check size={14} style={{ color: prof.color, flexShrink: 0 }} />
+                            )}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "0.68rem",
+                              fontWeight: 700,
+                              color: prof.color,
+                              background: `${prof.color}18`,
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              alignSelf: "flex-start",
+                              marginTop: "2px",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            {prof.tag}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.35 }}>
+                            {prof.desc}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

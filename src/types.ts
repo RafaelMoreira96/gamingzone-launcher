@@ -92,6 +92,7 @@ export type ControllerPromptType = 'xbox' | 'playstation' | 'nintendo';
 export type BigPictureTheme = 'steam' | 'xbox' | 'playstation' | 'nintendo';
 export type CardBadgePreference = 'auto' | 'platform' | 'recomp';
 export type LibrarySortBy = 'recent' | 'playtime' | 'name-asc' | 'name-desc' | 'added';
+export type LoFiProfileType = 'cozy-synth' | 'rainy-cafe' | 'cyber-chill' | 'dreamy-retro' | 'night-drive';
 
 export interface AppSettings {
   theme: ThemeType;
@@ -115,6 +116,7 @@ export interface AppSettings {
   cardBadgePreference?: CardBadgePreference;
   ambientMusicEnabled?: boolean;
   ambientMusicVolume?: number;
+  ambientMusicProfile?: LoFiProfileType;
   librarySortBy?: LibrarySortBy;
 }
 

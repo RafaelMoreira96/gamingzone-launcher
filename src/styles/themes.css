@@ -1,0 +1,264 @@
+/* ==========================================================================
+   THEMES
+   --------------------------------------------------------------------------
+   Each theme ONLY overrides semantic tokens from tokens.css.
+   Applied via <html data-theme="..."> (see hooks/useSettings.ts).
+   ========================================================================== */
+
+/* 0 · Midnight Cyan (default) — values live in tokens.css */
+[data-theme="midnight"] {
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 1 · Cyberpunk 2077 */
+[data-theme="cyberpunk"] {
+  --font-main: 'Orbitron', -apple-system, sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  --color-bg: #0d0e12;
+  --color-bg-elevated: #121419;
+  --color-surface-1: #1a1c24;
+  --color-surface-2: #232733;
+  --color-surface-3: #2e3343;
+  --color-border: rgba(252, 238, 10, 0.16);
+  --color-border-strong: rgba(252, 238, 10, 0.3);
+  --color-accent: #fcee0a;
+  --color-accent-contrast: #0d0e12;
+  --gradient-accent: linear-gradient(135deg, #fcee0a 0%, #ff0055 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #2b280a 0%, #0d0e12 70%);
+  --color-text: #fcfcfc;
+  --color-text-secondary: #a4abbd;
+  --color-text-muted: #6f778a;
+}
+
+/* 2 · Retro Arcade 8-bit */
+[data-theme="retro-arcade"] {
+  --font-main: 'Silkscreen', 'Press Start 2P', monospace;
+  --font-mono: 'Silkscreen', monospace;
+  --color-bg: #0b061a;
+  --color-bg-elevated: #100824;
+  --color-surface-1: #170d33;
+  --color-surface-2: #211347;
+  --color-surface-3: #2e1a61;
+  --color-border: rgba(255, 230, 0, 0.16);
+  --color-border-strong: rgba(255, 230, 0, 0.3);
+  --color-accent: #ffe600;
+  --color-accent-contrast: #0b061a;
+  --gradient-accent: linear-gradient(135deg, #ffe600 0%, #ff007f 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #2b1354 0%, #0b061a 75%);
+  --color-text: #fffce6;
+  --color-text-secondary: #c9bde4;
+  --color-text-muted: #9284b3;
+}
+
+/* 3 · Synthwave Outrun */
+[data-theme="synthwave"] {
+  --font-main: 'Righteous', 'Orbitron', cursive, sans-serif;
+  --color-bg: #0f0721;
+  --color-bg-elevated: #150930;
+  --color-surface-1: #220f47;
+  --color-surface-2: #2d145c;
+  --color-surface-3: #3d1b7d;
+  --color-border: rgba(255, 42, 133, 0.18);
+  --color-border-strong: rgba(255, 42, 133, 0.34);
+  --color-accent: #ff2a85;
+  --color-accent-contrast: #ffffff;
+  --gradient-accent: linear-gradient(135deg, #ff2a85 0%, #05d9e8 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #3e125c 0%, #0f0721 70%);
+  --color-text: #fff0f7;
+  --color-text-secondary: #c8a8da;
+  --color-text-muted: #9572aa;
+}
+
+/* 4 · PlayStation Heritage */
+[data-theme="playstation"] {
+  --font-main: 'Rajdhani', -apple-system, sans-serif;
+  --color-bg: #040a18;
+  --color-bg-elevated: #071023;
+  --color-surface-1: #0e1d3d;
+  --color-surface-2: #152750;
+  --color-surface-3: #1e366e;
+  --color-border: rgba(0, 111, 205, 0.22);
+  --color-border-strong: rgba(0, 136, 255, 0.4);
+  --color-accent: #0088ff;
+  --color-accent-contrast: #ffffff;
+  --gradient-accent: linear-gradient(135deg, #006fcd 0%, #00d2ff 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #0e2554 0%, #040a18 70%);
+  --color-text: #f0f6ff;
+  --color-text-secondary: #94afdb;
+  --color-text-muted: #6781aa;
+}
+
+/* 5 · Game Boy Classic */
+[data-theme="gameboy"] {
+  --font-main: 'Silkscreen', monospace;
+  --font-mono: 'Silkscreen', monospace;
+  --color-bg: #0e1911;
+  --color-bg-elevated: #132117;
+  --color-surface-1: #1b2f21;
+  --color-surface-2: #243d2c;
+  --color-surface-3: #30523b;
+  --color-border: rgba(155, 188, 15, 0.2);
+  --color-border-strong: rgba(155, 188, 15, 0.38);
+  --color-accent: #9bbc0f;
+  --color-accent-contrast: #0f2b15;
+  --gradient-accent: linear-gradient(135deg, #9bbc0f 0%, #8bac0f 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #28442e 0%, #0e1911 70%);
+  --color-text: #ebf5db;
+  --color-text-secondary: #a8be9b;
+  --color-text-muted: #728766;
+}
+
+/* 6 · Famicom Nostalgia */
+[data-theme="famicom"] {
+  --font-main: 'Outfit', -apple-system, sans-serif;
+  --color-bg: #14090a;
+  --color-bg-elevated: #1b0c0e;
+  --color-surface-1: #2a1417;
+  --color-surface-2: #381b1f;
+  --color-surface-3: #4a2429;
+  --color-border: rgba(229, 37, 33, 0.2);
+  --color-border-strong: rgba(255, 184, 0, 0.35);
+  --color-accent: #ffb800;
+  --color-accent-contrast: #1a0b0c;
+  --gradient-accent: linear-gradient(135deg, #e52521 0%, #ffb800 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #3d1419 0%, #14090a 70%);
+  --color-text: #fff5f5;
+  --color-text-secondary: #d6abb0;
+  --color-text-muted: #9e767b;
+}
+
+/* 7 · Fallout Pip-Boy Amber */
+[data-theme="pipboy"] {
+  --font-main: 'Share Tech Mono', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
+  --color-bg: #0d0903;
+  --color-bg-elevated: #130d04;
+  --color-surface-1: #1d1508;
+  --color-surface-2: #281d0c;
+  --color-surface-3: #372912;
+  --color-border: rgba(255, 176, 0, 0.18);
+  --color-border-strong: rgba(255, 176, 0, 0.36);
+  --color-accent: #ffb000;
+  --color-accent-contrast: #0d0903;
+  --gradient-accent: linear-gradient(135deg, #ffb000 0%, #ff8800 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #332107 0%, #0d0903 70%);
+  --color-text: #fff4d6;
+  --color-text-secondary: #cbb48a;
+  --color-text-muted: #8e7a56;
+}
+
+/* 8 · Cyber Violet */
+[data-theme="cyber-violet"] {
+  --color-bg: #0a0614;
+  --color-bg-elevated: #0e091c;
+  --color-surface-1: #150f2a;
+  --color-surface-2: #1c1437;
+  --color-surface-3: #261b4a;
+  --color-border: rgba(179, 71, 255, 0.12);
+  --color-border-strong: rgba(179, 71, 255, 0.3);
+  --color-accent: #b347ff;
+  --color-accent-contrast: #ffffff;
+  --gradient-accent: linear-gradient(135deg, #b347ff 0%, #7928ca 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #20133c 0%, #0a0614 65%);
+  --color-text: #f5f0ff;
+  --color-text-secondary: #a89bb9;
+  --color-text-muted: #796d8b;
+}
+
+/* 9 · Emerald Matrix */
+[data-theme="emerald"] {
+  --font-main: 'Share Tech Mono', monospace, sans-serif;
+  --color-bg: #040d08;
+  --color-bg-elevated: #06140c;
+  --color-surface-1: #0b2014;
+  --color-surface-2: #102a1c;
+  --color-surface-3: #163926;
+  --color-border: rgba(0, 230, 118, 0.12);
+  --color-border-strong: rgba(0, 230, 118, 0.3);
+  --color-accent: #00e676;
+  --color-accent-contrast: #04140b;
+  --gradient-accent: linear-gradient(135deg, #00e676 0%, #00b0ff 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #0d2b1b 0%, #040d08 65%);
+  --color-text: #ebfaf0;
+  --color-text-secondary: #93b59f;
+  --color-text-muted: #64856f;
+}
+
+/* 10 · Crimson Blood */
+[data-theme="crimson"] {
+  --font-main: 'Cinzel', serif, sans-serif;
+  --color-bg: #0d0507;
+  --color-bg-elevated: #14070a;
+  --color-surface-1: #200d11;
+  --color-surface-2: #2b1318;
+  --color-surface-3: #381a20;
+  --color-border: rgba(255, 42, 85, 0.12);
+  --color-border-strong: rgba(255, 42, 85, 0.3);
+  --color-accent: #ff2a55;
+  --color-accent-contrast: #ffffff;
+  --gradient-accent: linear-gradient(135deg, #ff2a55 0%, #b3002d 100%);
+  --gradient-app: radial-gradient(circle at 50% 0%, #301017 0%, #0d0507 65%);
+  --color-text: #fff0f3;
+  --color-text-secondary: #b5959c;
+  --color-text-muted: #856a70;
+}
+
+/* 11 · OLED High Contrast */
+[data-theme="high-contrast"] {
+  --color-bg: #000000;
+  --color-bg-elevated: #050505;
+  --color-surface-1: #101010;
+  --color-surface-2: #181818;
+  --color-surface-3: #262626;
+  --color-border: rgba(255, 255, 255, 0.25);
+  --color-border-strong: rgba(255, 255, 255, 0.5);
+  --color-accent: #00ffff;
+  --color-accent-contrast: #000000;
+  --gradient-accent: linear-gradient(135deg, #00ffff 0%, #ffffff 100%);
+  --gradient-app: #000000;
+  --color-text: #ffffff;
+  --color-text-secondary: #d4d4d4;
+  --color-text-muted: #a3a3a3;
+}
+
+/* ==========================================================================
+   USER PREFERENCES (font family / size / density / motion / glass)
+   ========================================================================== */
+html[data-font-family="plus-jakarta"] { --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; }
+html[data-font-family="orbitron"]     { --font-main: 'Orbitron', -apple-system, sans-serif !important; }
+html[data-font-family="silkscreen"]   { --font-main: 'Silkscreen', monospace !important; --font-mono: 'Silkscreen', monospace !important; }
+html[data-font-family="press-start"]  { --font-main: 'Press Start 2P', monospace !important; --font-mono: 'Press Start 2P', monospace !important; }
+html[data-font-family="rajdhani"]     { --font-main: 'Rajdhani', -apple-system, sans-serif !important; }
+html[data-font-family="righteous"]    { --font-main: 'Righteous', cursive, sans-serif !important; }
+html[data-font-family="share-tech"]   { --font-main: 'Share Tech Mono', monospace !important; --font-mono: 'Share Tech Mono', monospace !important; }
+html[data-font-family="outfit"]       { --font-main: 'Outfit', -apple-system, sans-serif !important; }
+html[data-font-family="cinzel"]       { --font-main: 'Cinzel', serif, sans-serif !important; }
+html[data-font-family="jetbrains"]    { --font-main: 'JetBrains Mono', monospace !important; --font-mono: 'JetBrains Mono', monospace !important; }
+
+html[data-font-size="small"]  { font-size: 13.5px; }
+html[data-font-size="medium"] { font-size: 15px; }
+html[data-font-size="large"]  { font-size: 17px; }
+html[data-font-size="xlarge"] { font-size: 19px; }
+
+html[data-card-size="compact"]  { --card-min-width: 150px; --card-gap: var(--space-3); }
+html[data-card-size="normal"]   { --card-min-width: 184px; --card-gap: var(--space-4); }
+html[data-card-size="spacious"] { --card-min-width: 232px; --card-gap: var(--space-5); }
+
+[data-disable-glass="true"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  transition-duration: 0.001s !important;
+  animation-duration: 0.001s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.001s !important;
+    animation-duration: 0.001s !important;
+  }
+}

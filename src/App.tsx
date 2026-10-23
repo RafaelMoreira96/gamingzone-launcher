@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Search, Gamepad2, Settings, Flame, Tv, FolderUp, Cpu, Layers, Volume2, VolumeX, Trophy, ArrowUpDown } from "lucide-react";
+import { Gamepad2, FolderUp, Cpu, Layers, ArrowUpDown } from "lucide-react";
 import { AppSettings, Game, Platform, PlayStatusType, LibrarySortBy } from "./types";
 import { api } from "./services/api";
 import { ambientAudio } from "./services/ambientAudio";
-import { Sidebar } from "./components/Sidebar";
+import { TopNav } from "./layout/TopNav";
+import { LibrarySidebar } from "./layout/LibrarySidebar";
+import { StatusBar } from "./layout/StatusBar";
+import { GamePage } from "./components/GamePage";
 import { GameCard } from "./components/GameCard";
 import { AddGameModal } from "./components/AddGameModal";
 import { GameDetailsModal } from "./components/GameDetailsModal";
@@ -13,7 +16,6 @@ import { ReplayView } from "./components/ReplayView";
 import { BigPictureMode } from "./components/BigPictureMode";
 import { BatchImportModal } from "./components/BatchImportModal";
 import { RetroAchievementsView } from "./components/RetroAchievementsView";
-import { ConsoleIcon } from "./components/ConsoleIcon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -104,13 +106,16 @@ export const App: React.FC = () => {
   // Sync Ambient Audio with settings
   useEffect(() => {
     if (settings.ambientMusicEnabled) {
-      ambientAudio.start(settings.ambientMusicVolume ?? 0.25);
+      if (settings.ambientMusicProfile) {
+        ambientAudio.setProfile(settings.ambientMusicProfile);
+      }
+      ambientAudio.start(settings.ambientMusicVolume ?? 0.25, settings.ambientMusicProfile);
       setAmbientPlaying(true);
     } else {
       ambientAudio.stop();
       setAmbientPlaying(false);
     }
-  }, [settings.ambientMusicEnabled, settings.ambientMusicVolume]);
+  }, [settings.ambientMusicEnabled, settings.ambientMusicVolume, settings.ambientMusicProfile]);
 
   // Check start in big picture on mount
   useEffect(() => {
@@ -346,7 +351,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className={`app-container theme-${settings.theme}`}>
+    <div className={`app-root theme-${settings.theme}`}>
       {isBigPicture ? (
         <BigPictureMode
           games={games}
@@ -364,418 +369,246 @@ export const App: React.FC = () => {
           onOpenBatchImport={() => setIsBatchModalOpen(true)}
           onOpenGameDetails={(g) => {
             setSelectedGame(g);
-            setIsDetailsModalOpen(true);
           }}
           raUsername={settings.raUsername}
           raApiKey={settings.raApiKey}
         />
       ) : (
         <>
-          {/* SIDEBAR */}
-      <Sidebar
-        platforms={platforms}
-        selectedPlatformId={selectedPlatformId}
-        onSelectPlatform={setSelectedPlatformId}
-        gamesCountByPlatform={gamesCountByPlatform}
-        totalGamesCount={games.length}
-        totalPlaytimeHours={totalPlaytimeHours}
-        currentView={currentView}
-        onSelectView={setCurrentView}
-        typeFilter={typeFilter}
-        onSelectTypeFilter={setTypeFilter}
-        recompCount={recompCount}
-        emulatorCount={emulatorCount}
-        onlyFavorites={onlyFavorites}
-        onToggleOnlyFavorites={() => {
-          setOnlyFavorites((prev) => !prev);
-          if (!onlyFavorites) setStatusFilter("all");
-        }}
-        favoriteCount={favoriteCount}
-        statusFilter={statusFilter}
-        onSelectStatusFilter={(status) => {
-          setStatusFilter(status);
-          if (status !== "all") setOnlyFavorites(false);
-        }}
-        completedCount={completedCount}
-      />
-
-      {/* MAIN CONTENT AREA */}
-      <main className="main-content">
-        {/* TOP BAR */}
-        <header className="top-bar">
-          <div className="search-box-wrapper">
-            <Search size={18} color="var(--text-muted)" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="search-input"
-              placeholder="Buscar por título, console de origem, port ou emulador..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery ? (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  padding: "0 4px",
-                  fontSize: "0.85rem",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                title="Limpar busca (Esc)"
-              >
-                ✕
-              </button>
-            ) : (
-              <span
-                style={{
-                  fontSize: "0.68rem",
-                  color: "var(--text-muted)",
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  userSelect: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Ctrl+F
-              </span>
-            )}
-          </div>
-
-          <div className="top-actions">
-            {/* AMBIENT LO-FI SYNTH MUSIC TOGGLE */}
-            <button
-              className={`btn-secondary ${ambientPlaying ? "active" : ""}`}
-              onClick={() => {
-                const next = !settings.ambientMusicEnabled;
-                updateSettings({ ambientMusicEnabled: next });
-                if (next) {
-                  ambientAudio.start(settings.ambientMusicVolume ?? 0.25);
-                  setAmbientPlaying(true);
-                } else {
-                  ambientAudio.stop();
-                  setAmbientPlaying(false);
-                }
-              }}
-              title={ambientPlaying ? "Pausar Trilha Sonora Lo-Fi Retro" : "Ativar Trilha Sonora Lo-Fi Retro"}
-              style={{
-                borderColor: ambientPlaying ? "rgba(179, 71, 255, 0.5)" : undefined,
-                color: ambientPlaying ? "#D48BFF" : undefined,
-                boxShadow: ambientPlaying ? "0 0 14px rgba(179, 71, 255, 0.25)" : undefined,
-              }}
-            >
-              {ambientPlaying ? <Volume2 size={18} /> : <VolumeX size={18} />}
-              <span>Lo-Fi</span>
-            </button>
-
-            {/* BIG PICTURE MODE TOGGLE */}
-            <button
-              className="btn-secondary"
-              onClick={() => handleToggleBigPicture(true)}
-              title="Modo Big Picture para TV e Controle (F11)"
-              style={{
-                borderColor: "rgba(0, 229, 255, 0.4)",
-                color: "var(--accent-cyan)",
-              }}
-            >
-              <Tv size={18} />
-              <span>Big Picture</span>
-            </button>
-
-            {/* RETROACHIEVEMENTS VIEW TOGGLE */}
-            <button
-              className={`btn-secondary ${currentView === "achievements" ? "active" : ""}`}
-              onClick={() => {
-                if (currentView !== "achievements") {
-                  setSelectedRaGame(selectedGame || games[0] || null);
-                  setCurrentView("achievements");
-                } else {
-                  setCurrentView("library");
-                }
-              }}
-              title="Central de Conquistas do RetroAchievements"
-              style={{
-                borderColor: currentView === "achievements" ? "#FF9900" : "rgba(255, 153, 0, 0.4)",
-                color: "#FFB84D",
-                background: currentView === "achievements" ? "rgba(255, 153, 0, 0.18)" : undefined,
-                boxShadow: currentView === "achievements" ? "0 0 16px rgba(255, 153, 0, 0.3)" : undefined,
-              }}
-            >
-              <Trophy size={18} color="#FF9900" />
-              <span>Conquistas</span>
-            </button>
-
-            {/* STEAM REPLAY TOGGLE BUTTON */}
-            <button
-              className={`btn-secondary ${currentView === "replay" ? "active" : ""}`}
-              onClick={() => setCurrentView(currentView === "replay" ? "library" : "replay")}
-              style={{
-                borderColor: currentView === "replay" ? "#FF9900" : undefined,
-                color: currentView === "replay" ? "#FFB84D" : undefined,
-                boxShadow: currentView === "replay" ? "0 0 16px rgba(255, 153, 0, 0.25)" : undefined,
-              }}
-              title="Ver Retrospectiva e Analytics de Horas"
-            >
-              <Flame size={18} color="#FF9900" />
-              <span>Gaming Replay</span>
-            </button>
-
-            <button
-              className="btn-secondary"
-              onClick={() => setIsSettingsModalOpen(true)}
-              title="Configurações de Tema, Acessibilidade e Plataformas"
-            >
-              <Settings size={18} />
-              <span>Configurações</span>
-            </button>
-
-            {/* BATCH ROMS IMPORT BUTTON */}
-            <button
-              className="btn-secondary"
-              onClick={() => setIsBatchModalOpen(true)}
-              title="Escanear e importar pasta de ROMs de emuladores"
-            >
-              <FolderUp size={18} />
-              <span>Importar ROMs</span>
-            </button>
-
-            <button
-              className="btn-primary"
-              onClick={() => setIsAddModalOpen(true)}
-            >
-              <Plus size={18} />
-              <span>Adicionar Jogo</span>
-            </button>
-          </div>
-        </header>
-
-        {/* CONDITIONALLY RENDER: RETROACHIEVEMENTS, RECOMP REPLAY OR LIBRARY */}
-        {currentView === "achievements" ? (
-          <RetroAchievementsView
-            games={games}
-            initialGame={selectedRaGame}
-            raUsername={settings.raUsername}
-            raApiKey={settings.raApiKey}
-            onBackToLibrary={() => setCurrentView("library")}
+          {/* STEAM-STYLE TOP NAVIGATION BAR */}
+          <TopNav
+            currentView={currentView}
+            onSelectView={(v) => {
+              setCurrentView(v);
+              if (v !== "library") setSelectedGame(null);
+            }}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            ambientPlaying={ambientPlaying}
+            ambientProfile={settings.ambientMusicProfile || "cozy-synth"}
+            onToggleAmbient={() => {
+              const next = !settings.ambientMusicEnabled;
+              updateSettings({ ambientMusicEnabled: next });
+              if (next) {
+                ambientAudio.start(settings.ambientMusicVolume ?? 0.25, settings.ambientMusicProfile || "cozy-synth");
+                setAmbientPlaying(true);
+              } else {
+                ambientAudio.stop();
+                setAmbientPlaying(false);
+              }
+            }}
+            onSelectAmbientProfile={(prof) => {
+              updateSettings({ ambientMusicProfile: prof, ambientMusicEnabled: true });
+              ambientAudio.setProfile(prof);
+              ambientAudio.start(settings.ambientMusicVolume ?? 0.25, prof);
+              setAmbientPlaying(true);
+            }}
+            onOpenBigPicture={() => handleToggleBigPicture(true)}
             onOpenSettings={() => setIsSettingsModalOpen(true)}
+            onOpenAddGame={() => setIsAddModalOpen(true)}
+            onOpenBatchImport={() => setIsBatchModalOpen(true)}
+            searchInputRef={searchInputRef}
           />
-        ) : currentView === "replay" ? (
-          <ReplayView
-            onBackToLibrary={() => setCurrentView("library")}
-            games={games}
-            platforms={platforms}
-          />
-        ) : (
-          <div className="library-viewport">
-            <div className="library-header">
-              <div>
-                <h2 className="library-title">{getLibraryTitle()}</h2>
-                <p className="library-subtitle">
-                  {filteredGames.length} {filteredGames.length === 1 ? "jogo exibido" : "jogos exibidos"}
-                  {activePlatform && ` do console ${activePlatform.name}`}
-                  {typeFilter === "recomp" && " • Apenas Recompilações PC"}
-                  {typeFilter === "emulator" && " • Apenas Jogos Emulados"}
-                  {onlyFavorites && " • Favoritos"}
-                  {statusFilter !== "all" && ` • Status: ${statusFilter.toUpperCase()}`}
-                </p>
-              </div>
 
-              <div className="library-header-actions">
-                {/* SORT SELECTOR */}
-                <div className="sort-selector-container">
-                  <ArrowUpDown size={14} className="sort-selector-icon" />
-                  <select
-                    className="sort-selector-dropdown"
-                    value={sortBy}
-                    onChange={(e) => handleSortChange(e.target.value as LibrarySortBy)}
-                    title="Ordenar biblioteca"
-                    aria-label="Critério de ordenação da biblioteca"
-                  >
-                    <option value="name-asc">Nome (A - Z)</option>
-                    <option value="name-desc">Nome (Z - A)</option>
-                    <option value="recent">Mais Recentes Jogados</option>
-                    <option value="playtime">Mais Tempo Jogado</option>
-                    <option value="added">Adicionados Recentemente</option>
-                  </select>
-                </div>
+          {/* MAIN BODY: PLAYNITE-STYLE SIDEBAR + CONTENT VIEW */}
+          <div className="app-body">
+            {/* Left Library Sidebar */}
+            <LibrarySidebar
+              platforms={platforms}
+              selectedPlatformId={selectedPlatformId}
+              onSelectPlatform={(id) => {
+                setSelectedPlatformId(id);
+                setCurrentView("library");
+              }}
+              gamesCountByPlatform={gamesCountByPlatform}
+              totalGamesCount={games.length}
+              typeFilter={typeFilter}
+              onSelectTypeFilter={(tf) => {
+                setTypeFilter(tf);
+                setCurrentView("library");
+              }}
+              recompCount={recompCount}
+              emulatorCount={emulatorCount}
+              onlyFavorites={onlyFavorites}
+              onToggleOnlyFavorites={() => {
+                setOnlyFavorites((prev) => !prev);
+                if (!onlyFavorites) setStatusFilter("all");
+                setCurrentView("library");
+              }}
+              favoriteCount={favoriteCount}
+              statusFilter={statusFilter}
+              onSelectStatusFilter={(sf) => {
+                setStatusFilter(sf);
+                if (sf !== "all") setOnlyFavorites(false);
+                setCurrentView("library");
+              }}
+              completedCount={completedCount}
+              games={filteredGames}
+              selectedGameId={selectedGame?.id ?? null}
+              onSelectGame={(g) => {
+                setSelectedGame(g);
+                setCurrentView("library");
+              }}
+            />
 
-                {/* SEGMENTED CONTROL: TIPO DE JOGO */}
-                <div className="type-toggle-bar">
-                  <button
-                    className={`type-toggle-btn ${typeFilter === "all" ? "active" : ""}`}
-                    onClick={() => setTypeFilter("all")}
-                  >
-                    <Layers size={14} />
-                    <span>Todos ({games.length})</span>
-                  </button>
-                  <button
-                    className={`type-toggle-btn recomp ${typeFilter === "recomp" ? "active" : ""}`}
-                    onClick={() => setTypeFilter("recomp")}
-                  >
-                    <Cpu size={14} />
-                    <span>Recomps PC ({recompCount})</span>
-                  </button>
-                  <button
-                    className={`type-toggle-btn emulator ${typeFilter === "emulator" ? "active" : ""}`}
-                    onClick={() => setTypeFilter("emulator")}
-                  >
-                    <Gamepad2 size={14} />
-                    <span>Emuladores ({emulatorCount})</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            {/* Central Content View */}
+            <main className="app-content">
+              {currentView === "achievements" ? (
+                <RetroAchievementsView
+                  games={games}
+                  initialGame={selectedRaGame}
+                  raUsername={settings.raUsername}
+                  raApiKey={settings.raApiKey}
+                  onBackToLibrary={() => setCurrentView("library")}
+                  onOpenSettings={() => setIsSettingsModalOpen(true)}
+                />
+              ) : currentView === "replay" ? (
+                <ReplayView
+                  onBackToLibrary={() => setCurrentView("library")}
+                  games={games}
+                  platforms={platforms}
+                />
+              ) : selectedGame ? (
+                /* INLINE STEAM-STYLE GAME DETAIL PAGE */
+                <GamePage
+                  game={selectedGame}
+                  platforms={platforms}
+                  onBack={() => setSelectedGame(null)}
+                  onLaunch={handleLaunch}
+                  onStop={handleStop}
+                  onGameDeleted={() => {
+                    setSelectedGame(null);
+                    loadGames();
+                  }}
+                  onToggleFavorite={handleToggleFavorite}
+                  onGameUpdated={loadGames}
+                  steamGridDbKey={settings.steamGridDbApiKey}
+                  igdbApiKey={settings.igdbApiKey || settings.igdbClientId}
+                  igdbClientId={settings.igdbClientId}
+                  igdbClientSecret={settings.igdbClientSecret}
+                  raUsername={settings.raUsername}
+                  raApiKey={settings.raApiKey}
+                />
+              ) : (
+                /* DEFAULT LIBRARY GRID VIEW */
+                <div className="library-viewport thin-scrollbar">
+                  <div className="library-header">
+                    <div>
+                      <h2 className="library-title">{getLibraryTitle()}</h2>
+                      <p className="library-subtitle">
+                        {filteredGames.length} {filteredGames.length === 1 ? "jogo exibido" : "jogos exibidos"}
+                        {activePlatform && ` do console ${activePlatform.name}`}
+                        {typeFilter === "recomp" && " • Apenas Recompilações PC"}
+                        {typeFilter === "emulator" && " • Apenas Jogos Emulados"}
+                        {onlyFavorites && " • Favoritos"}
+                        {statusFilter !== "all" && ` • Status: ${statusFilter.toUpperCase()}`}
+                      </p>
+                    </div>
 
-            {/* CONSOLE QUICK FILTER BAR IN EMULATION MODE */}
-            {typeFilter === "emulator" && (
-              <div className="emulation-consoles-bar">
-                <div className="emulation-consoles-header">
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                      Consoles Emulados
-                    </span>
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      — Filtre seus jogos por console ou importe novas ROMs
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsBatchModalOpen(true)}
-                    style={{
-                      fontSize: "0.8rem",
-                      color: "var(--accent-cyan)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      cursor: "pointer",
-                      background: "rgba(0, 229, 255, 0.08)",
-                      border: "1px solid rgba(0, 229, 255, 0.25)",
-                      padding: "4px 10px",
-                      borderRadius: "6px",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <FolderUp size={14} />
-                    <span>Importar ROMs em Lote</span>
-                  </button>
-                </div>
-
-                <div className="emulation-consoles-scroll thin-scrollbar">
-                  {/* Option: Todos os Consoles */}
-                  <button
-                    type="button"
-                    className={`console-quick-pill ${selectedPlatformId === null ? "active" : ""}`}
-                    onClick={() => setSelectedPlatformId(null)}
-                  >
-                    <Layers size={15} />
-                    <span>Todos ({emulatorCount})</span>
-                  </button>
-
-                  {/* Major Consoles with authentic vector icons */}
-                  {platforms
-                    .filter((p) => p.is_enabled && p.id !== "other")
-                    .map((plat) => {
-                      const count = games.filter(
-                        (g) => g.is_emulator && g.original_platform_id === plat.id
-                      ).length;
-                      const isSelected = selectedPlatformId === plat.id;
-
-                      return (
-                        <button
-                          key={plat.id}
-                          type="button"
-                          className={`console-quick-pill ${isSelected ? "active" : ""}`}
-                          onClick={() => setSelectedPlatformId(isSelected ? null : plat.id)}
-                          style={{
-                            borderColor: isSelected ? plat.brand_color : undefined,
-                            boxShadow: isSelected ? `0 0 12px ${plat.brand_color}44` : undefined,
-                          }}
-                          title={`${plat.name} (${count} jogos emulados)`}
+                    <div className="library-header-actions">
+                      {/* Sort Selector */}
+                      <div className="sort-selector-container">
+                        <ArrowUpDown size={14} className="sort-selector-icon" />
+                        <select
+                          className="sort-selector-dropdown"
+                          value={sortBy}
+                          onChange={(e) => handleSortChange(e.target.value as LibrarySortBy)}
+                          title="Ordenar biblioteca"
+                          aria-label="Critério de ordenação da biblioteca"
                         >
-                          <ConsoleIcon
-                            platformId={plat.id}
-                            name={plat.name}
-                            size={17}
-                            color={plat.brand_color}
-                          />
-                          <span style={{ fontWeight: isSelected ? 700 : 500 }}>{plat.short_name}</span>
-                          <span
-                            className="console-quick-count"
-                            style={{
-                              color: isSelected ? plat.brand_color : undefined,
-                              background: isSelected ? `${plat.brand_color}22` : undefined,
-                            }}
-                          >
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
+                          <option value="name-asc">Nome (A - Z)</option>
+                          <option value="name-desc">Nome (Z - A)</option>
+                          <option value="recent">Mais Recentes Jogados</option>
+                          <option value="playtime">Mais Tempo Jogado</option>
+                          <option value="added">Adicionados Recentemente</option>
+                        </select>
+                      </div>
 
-            {filteredGames.length === 0 ? (
-              <div className="empty-library">
-                <div className="empty-icon-box">
-                  <Gamepad2 size={36} />
+                      {/* Filter Segmented Control */}
+                      <div className="type-toggle-bar">
+                        <button
+                          className={`type-toggle-btn ${typeFilter === "all" ? "active" : ""}`}
+                          onClick={() => setTypeFilter("all")}
+                        >
+                          <Layers size={14} />
+                          <span>Todos ({games.length})</span>
+                        </button>
+                        <button
+                          className={`type-toggle-btn recomp ${typeFilter === "recomp" ? "active" : ""}`}
+                          onClick={() => setTypeFilter("recomp")}
+                        >
+                          <Cpu size={14} />
+                          <span>Recomps PC ({recompCount})</span>
+                        </button>
+                        <button
+                          className={`type-toggle-btn emulator ${typeFilter === "emulator" ? "active" : ""}`}
+                          onClick={() => setTypeFilter("emulator")}
+                        >
+                          <Gamepad2 size={14} />
+                          <span>Emuladores ({emulatorCount})</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {filteredGames.length === 0 ? (
+                    <div className="empty-library">
+                      <div className="empty-icon-box">
+                        <Gamepad2 size={36} />
+                      </div>
+                      <h3 style={{ fontSize: "1.2rem", fontWeight: 700 }}>
+                        Nenhum jogo encontrado
+                      </h3>
+                      <p style={{ color: "var(--color-text-muted)", maxWidth: "480px", fontSize: "0.9rem" }}>
+                        Adicione executáveis de ports nativos descompilados ou importe ROMs de emuladores para a sua coleção.
+                      </p>
+                      <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => setIsBatchModalOpen(true)}
+                        >
+                          <FolderUp size={16} />
+                          <span>Importar ROMs</span>
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setIsAddModalOpen(true)}
+                        >
+                          <span>Adicionar Jogo</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="games-grid">
+                      {filteredGames.map((game) => (
+                        <GameCard
+                          key={game.id}
+                          game={game}
+                          badgePreference={settings.cardBadgePreference ?? "auto"}
+                          onSelect={handleCardClick}
+                          onLaunch={handleLaunch}
+                          onStop={handleStop}
+                          onToggleFavorite={handleToggleFavorite}
+                          onEdit={handleEditGame}
+                          onOpenAchievements={(g) => {
+                            if (!g.is_emulator) return;
+                            setSelectedRaGame(g);
+                            setCurrentView("achievements");
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <h3 style={{ fontSize: "1.2rem", fontWeight: 700 }}>
-                  Nenhum jogo encontrado
-                </h3>
-                <p style={{ color: "var(--text-muted)", maxWidth: "480px", fontSize: "0.9rem" }}>
-                  Adicione executáveis de ports descompilados nativos (Zelda OoT, Mario 64, Jak & Daxter) ou importe ROMs de emuladores (PCSX2, Dolphin, DuckStation, etc.) para sua coleção.
-                </p>
-                <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setIsBatchModalOpen(true)}
-                  >
-                    <FolderUp size={16} />
-                    <span>Importar Pasta de ROMs</span>
-                  </button>
-                  <button
-                    className="btn-primary"
-                    onClick={() => setIsAddModalOpen(true)}
-                  >
-                    <Plus size={16} />
-                    <span>Adicionar Jogo</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="games-grid">
-                {filteredGames.map((game) => (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    badgePreference={settings.cardBadgePreference ?? "auto"}
-                    onSelect={handleCardClick}
-                    onLaunch={handleLaunch}
-                    onStop={handleStop}
-                    onToggleFavorite={handleToggleFavorite}
-                    onEdit={handleEditGame}
-                    onOpenAchievements={(g) => {
-                      if (!g.is_emulator) return;
-                      setSelectedRaGame(g);
-                      setCurrentView("achievements");
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+              )}
+            </main>
           </div>
-        )}
-      </main>
+
+          {/* PERSISTENT STATUS BAR */}
+          <StatusBar games={games} totalPlaytimeHours={totalPlaytimeHours} />
         </>
       )}
+
 
       {/* MODAL ADICIONAR JOGO */}
       <AddGameModal

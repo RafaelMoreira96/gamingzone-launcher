@@ -4,17 +4,11 @@ import {
   Square,
   Clock,
   Gamepad2,
-  X,
-  Trophy,
   Star,
-  Search,
-  TrendingUp,
-  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { Game, Platform, ControllerPromptType, ThemeType, BigPictureTheme } from "../types";
 import { formatPlaytime, formatImageUrl } from "../services/api";
-import { ReplayView } from "./ReplayView";
-import { RetroAchievementsView } from "./RetroAchievementsView";
 import { ConsoleIcon } from "./ConsoleIcon";
 import { ControllerPromptBadge } from "./ControllerButton";
 
@@ -28,7 +22,6 @@ export const BP_THEMES_METADATA: Record<
     accentColor: string;
     icon: string;
     desc: string;
-    guideName: string;
   }
 > = {
   steam: {
@@ -38,8 +31,7 @@ export const BP_THEMES_METADATA: Record<
     badgeLabel: "Steam Deck",
     accentColor: "#00E5FF",
     icon: "steam",
-    desc: "Cartazes verticais cinematográficos, estética obsidian moderna e neon ciano",
-    guideName: "GAMINGZONE DECK",
+    desc: "Cartazes verticais cinematográficos, estética obsidian e neon ciano",
   },
   xbox: {
     id: "xbox",
@@ -48,8 +40,7 @@ export const BP_THEMES_METADATA: Record<
     badgeLabel: "Xbox Series",
     accentColor: "#00E676",
     icon: "xbox",
-    desc: "Tiles quadrados e retangulares com anel verde esmeralda icônico e Xbox Guide",
-    guideName: "XBOX GUIDE",
+    desc: "Tiles com destaque esmeralda e navegação rápida",
   },
   playstation: {
     id: "playstation",
@@ -58,8 +49,7 @@ export const BP_THEMES_METADATA: Record<
     badgeLabel: "PlayStation 5",
     accentColor: "#00A3FF",
     icon: "ps1",
-    desc: "Arte de tela cheia dinâmica, cartões compactos e visual cósmico Sony Blue",
-    guideName: "PLAYSTATION HOME",
+    desc: "Arte de tela cheia dinâmica e visual cósmico Sony Blue",
   },
   nintendo: {
     id: "nintendo",
@@ -68,86 +58,7 @@ export const BP_THEMES_METADATA: Record<
     badgeLabel: "Switch Home",
     accentColor: "#E60012",
     icon: "switch",
-    desc: "Fileira de cartuchos 1:1 quadrados, estilo flat limpo, ágil e minimalista",
-    guideName: "NINTENDO SWITCH",
-  },
-};
-
-export const THEME_METADATA: Record<
-  ThemeType,
-  { name: string; label: string; accentColor: string; desc: string }
-> = {
-  midnight: {
-    name: "Midnight Cyan",
-    label: "Midnight",
-    accentColor: "#00E5FF",
-    desc: "Obsidian com neon ciano",
-  },
-  cyberpunk: {
-    name: "Cyberpunk 2077",
-    label: "Cyberpunk",
-    accentColor: "#FCEE0A",
-    desc: "Amarelo Night City e neon futurista",
-  },
-  "retro-arcade": {
-    name: "Retro Arcade 8-Bit",
-    label: "Retro Arcade",
-    accentColor: "#FFE600",
-    desc: "Nostalgia fliperama arcade",
-  },
-  synthwave: {
-    name: "Synthwave Outrun",
-    label: "Synthwave",
-    accentColor: "#FF2A85",
-    desc: "Estética anos 80 e neon magenta",
-  },
-  playstation: {
-    name: "PlayStation Heritage",
-    label: "PlayStation",
-    accentColor: "#006FCD",
-    desc: "Azul de console clássico PlayStation",
-  },
-  gameboy: {
-    name: "Game Boy Classic",
-    label: "Game Boy",
-    accentColor: "#9BBC0F",
-    desc: "Monocromático dot-matrix LCD",
-  },
-  famicom: {
-    name: "Famicom & Nintendo",
-    label: "Famicom",
-    accentColor: "#E52521",
-    desc: "Vermelho e dourado clássico Famicom",
-  },
-  pipboy: {
-    name: "Fallout Pip-Boy",
-    label: "Pip-Boy",
-    accentColor: "#FFB000",
-    desc: "Terminal CRT fósforo âmbar",
-  },
-  "cyber-violet": {
-    name: "Cyber Violet",
-    label: "Cyber Violet",
-    accentColor: "#B347FF",
-    desc: "Púrpura e violeta elétrico",
-  },
-  emerald: {
-    name: "Emerald Matrix",
-    label: "Emerald",
-    accentColor: "#00E676",
-    desc: "Verde esmeralda cyber matrix",
-  },
-  crimson: {
-    name: "Crimson Blood",
-    label: "Crimson",
-    accentColor: "#FF2A55",
-    desc: "Charcoal escuro e vermelho rubi",
-  },
-  "high-contrast": {
-    name: "OLED High Contrast",
-    label: "OLED",
-    accentColor: "#00FFFF",
-    desc: "Preto puro OLED e ciano",
+    desc: "Estilo flat limpo, ágil e minimalista",
   },
 };
 
@@ -185,11 +96,9 @@ const playSound = (type: "move" | "select" | "back", bpTheme: BigPictureTheme = 
     const gain = audioCtx.createGain();
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-
     const now = audioCtx.currentTime;
 
     if (bpTheme === "nintendo") {
-      // Nintendo Switch signature crisp click/pop
       if (type === "move") {
         osc.type = "sine";
         osc.frequency.setValueAtTime(800, now);
@@ -215,89 +124,36 @@ const playSound = (type: "move" | "select" | "back", bpTheme: BigPictureTheme = 
         osc.start(now);
         osc.stop(now + 0.04);
       }
-    } else if (bpTheme === "xbox") {
-      // Xbox Series X deep resonant pulse
-      if (type === "move") {
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(260, now);
-        osc.frequency.exponentialRampToValueAtTime(520, now + 0.05);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-        osc.start(now);
-        osc.stop(now + 0.05);
-      } else if (type === "select") {
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(320, now);
-        osc.frequency.exponentialRampToValueAtTime(640, now + 0.09);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-        osc.start(now);
-        osc.stop(now + 0.09);
-      } else {
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(450, now);
-        osc.frequency.exponentialRampToValueAtTime(220, now + 0.06);
-        gain.gain.setValueAtTime(0.09, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-        osc.start(now);
-        osc.stop(now + 0.06);
-      }
-    } else if (bpTheme === "playstation") {
-      // PS5 ethereal crystal dual-tone
-      if (type === "move") {
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(580, now);
-        osc.frequency.exponentialRampToValueAtTime(920, now + 0.045);
-        gain.gain.setValueAtTime(0.07, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-        osc.start(now);
-        osc.stop(now + 0.045);
-      } else if (type === "select") {
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(660, now);
-        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-        osc.start(now);
-        osc.stop(now + 0.08);
-      } else {
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(520, now);
-        osc.frequency.exponentialRampToValueAtTime(280, now + 0.05);
-        gain.gain.setValueAtTime(0.07, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-        osc.start(now);
-        osc.stop(now + 0.05);
-      }
     } else {
-      // Steam Big Picture standard
       if (type === "move") {
         osc.type = "sine";
-        osc.frequency.setValueAtTime(420, now);
-        osc.frequency.exponentialRampToValueAtTime(780, now + 0.04);
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(640, now + 0.035);
         gain.gain.setValueAtTime(0.08, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
         osc.start(now);
         osc.stop(now + 0.04);
       } else if (type === "select") {
         osc.type = "triangle";
-        osc.frequency.setValueAtTime(520, now);
-        osc.frequency.exponentialRampToValueAtTime(1040, now + 0.08);
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.07);
         gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
         osc.start(now);
-        osc.stop(now + 0.08);
+        osc.stop(now + 0.07);
       } else {
         osc.type = "sine";
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.05);
         gain.gain.setValueAtTime(0.08, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
       }
     }
-  } catch (_) {}
+  } catch (e) {
+    // Audio context not allowed or unsupported
+  }
 };
 
 export const BigPictureMode: React.FC<BigPictureModeProps> = ({
@@ -307,22 +163,32 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
   onStopGame,
   onExitBigPicture,
   controllerType = "xbox",
-  theme = "midnight",
   bigPictureTheme = "steam",
   onUpdateBigPictureTheme,
   onToggleFavorite,
-  onOpenSettings,
   onOpenGameDetails,
-  raUsername,
-  raApiKey,
 }) => {
+  // Navigation State
   const [currentBpTheme, setCurrentBpTheme] = useState<BigPictureTheme>(bigPictureTheme);
-  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-  const [themeModalFocusIndex, setThemeModalFocusIndex] = useState(0);
+  const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
+  const [filterMode, setFilterMode] = useState<"all" | "recomp" | "emulator">("all");
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  useEffect(() => {
-    setCurrentBpTheme(bigPictureTheme);
-  }, [bigPictureTheme]);
+  // Focus Zones: "filters" | "shelf" | "actions"
+  const [focusZone, setFocusZone] = useState<"filters" | "shelf" | "actions">("shelf");
+  const [actionFocusIndex, setActionFocusIndex] = useState(0); // 0: Play, 1: Details, 2: Fav
+
+  // Filter Focus Index
+  const [filterFocusIndex, setFilterFocusIndex] = useState(0);
+
+  // UI Information State
+  const [gamepadName, setGamepadName] = useState<string | null>(null);
+  const [clock, setClock] = useState("");
+
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const filterPillRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const lastButtonPress = useRef<number>(0);
 
   const activeBpTheme = BP_THEMES_METADATA[currentBpTheme] || BP_THEMES_METADATA.steam;
 
@@ -330,214 +196,63 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
     playSound(type, currentBpTheme);
   };
 
-  const [activeTab, setActiveTab] = useState<"library" | "replay" | "achievements">("library");
-  const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
-  const [filterMode, setFilterMode] = useState<"all" | "recomp" | "emulator">("all");
-  const [onlyFavorites, setOnlyFavorites] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [clock, setClock] = useState("");
-  const [gamepadName, setGamepadName] = useState<string | null>(null);
-  const [achievementsTargetGame, setAchievementsTargetGame] = useState<Game | null>(null);
+  // Filtered games
+  const filteredGames = useMemo(() => {
+    return games
+      .filter((game) => {
+        const matchesPlatform =
+          selectedPlatformId === null || game.original_platform_id === selectedPlatformId;
+        const matchesType =
+          filterMode === "all" ||
+          (filterMode === "recomp" && !game.is_emulator) ||
+          (filterMode === "emulator" && Boolean(game.is_emulator));
+        const matchesFav = !onlyFavorites || Boolean(game.is_favorite);
+        return matchesPlatform && matchesType && matchesFav;
+      })
+      .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+  }, [games, selectedPlatformId, filterMode, onlyFavorites]);
 
-  // Joystick & Controller Spatial Focus Management
-  const [focusZone, setFocusZone] = useState<"shelf" | "filters" | "header">("shelf");
-  const [headerFocusIndex, setHeaderFocusIndex] = useState(0);
-  const [filterFocusIndex, setFilterFocusIndex] = useState(0);
+  const selectedGame: Game | undefined = filteredGames[selectedIndex];
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const filterPillRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const lastButtonPress = useRef<number>(0);
+  // List of filter pill items
+  type FilterPill =
+    | { type: "all"; label: string; count: number }
+    | { type: "recomp"; label: string; count: number }
+    | { type: "emulator"; label: string; count: number }
+    | { type: "favorites"; label: string; count: number }
+    | { type: "platform"; id: string; label: string; count: number; color?: string };
 
-  // Counts
-  const recompCount = useMemo(() => games.filter((g) => !g.is_emulator).length, [games]);
-  const emulatorCount = useMemo(() => games.filter((g) => Boolean(g.is_emulator)).length, [games]);
-  const favoritesCount = useMemo(() => games.filter((g) => Boolean(g.is_favorite)).length, [games]);
-
-  // Available actions in the top-right console HUD
-  type HeaderActionId = "search" | "theme" | "exit";
-  const availableHeaderActions = useMemo<HeaderActionId[]>(() => {
-    return ["search", "theme", "exit"];
-  }, []);
-
-  // Dynamic list of available filter pills in the Sub-HUD
-  type FilterPillItem =
-    | { type: "all" }
-    | { type: "recomp" }
-    | { type: "emulator" }
-    | { type: "favorites" }
-    | { type: "platform"; id: string };
-
-  const filterPills = useMemo<FilterPillItem[]>(() => {
-    const items: FilterPillItem[] = [
-      { type: "all" },
-      { type: "recomp" },
-      { type: "emulator" },
-      { type: "favorites" },
+  const filterPills = useMemo<FilterPill[]>(() => {
+    const list: FilterPill[] = [
+      { type: "all", label: "Todos", count: games.length },
+      { type: "recomp", label: "Recomps PC", count: games.filter((g) => !g.is_emulator).length },
+      { type: "emulator", label: "Emulados", count: games.filter((g) => Boolean(g.is_emulator)).length },
+      { type: "favorites", label: "Favoritos", count: games.filter((g) => Boolean(g.is_favorite)).length },
     ];
     platforms
       .filter((p) => p.is_enabled)
       .forEach((p) => {
-        items.push({ type: "platform", id: p.id });
+        const count = games.filter((g) => g.original_platform_id === p.id).length;
+        if (count > 0) {
+          list.push({ type: "platform", id: p.id, label: p.short_name, count, color: p.brand_color });
+        }
       });
-    return items;
-  }, [platforms]);
+    return list;
+  }, [games, platforms]);
 
-  // Clamp focus indices
-  useEffect(() => {
-    if (headerFocusIndex >= availableHeaderActions.length) {
-      setHeaderFocusIndex(Math.max(0, availableHeaderActions.length - 1));
-    }
-  }, [availableHeaderActions.length, headerFocusIndex]);
-
-  useEffect(() => {
-    if (filterFocusIndex >= filterPills.length) {
-      setFilterFocusIndex(Math.max(0, filterPills.length - 1));
-    }
-  }, [filterPills.length, filterFocusIndex]);
-
-  // Auto-scroll focused filter pill into view
-  useEffect(() => {
-    if (focusZone === "filters" && filterPillRefs.current[filterFocusIndex]) {
-      filterPillRefs.current[filterFocusIndex]?.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
-  }, [focusZone, filterFocusIndex]);
-
-  // Execute Header Action
-  const triggerHeaderAction = (action: HeaderActionId) => {
-    playThemeSound("select");
-    switch (action) {
-      case "search":
-        setIsSearchOpen((prev) => {
-          const next = !prev;
-          if (next) {
-            setTimeout(() => searchInputRef.current?.focus(), 60);
-          }
-          return next;
-        });
-        if (activeTab !== "library") setActiveTab("library");
-        break;
-      case "theme":
-        const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
-        const currentIdx = bpThemes.indexOf(currentBpTheme);
-        setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
-        setIsThemeModalOpen(true);
-        break;
-      case "exit":
-        onExitBigPicture();
-        break;
-    }
-  };
-
-  // Apply Filter Pill
-  const applyFilterPill = (index: number) => {
-    const item = filterPills[index];
-    if (!item) return;
-    playSound("select");
-    if (item.type === "all") {
-      setSelectedPlatformId(null);
-      setFilterMode("all");
-      setOnlyFavorites(false);
-      setSelectedIndex(0);
-    } else if (item.type === "recomp") {
-      setSelectedPlatformId(null);
-      setFilterMode("recomp");
-      setOnlyFavorites(false);
-      setSelectedIndex(0);
-    } else if (item.type === "emulator") {
-      setSelectedPlatformId(null);
-      setFilterMode("emulator");
-      setOnlyFavorites(false);
-      setSelectedIndex(0);
-    } else if (item.type === "favorites") {
-      setOnlyFavorites((prev) => !prev);
-      setSelectedIndex(0);
-    } else if (item.type === "platform") {
-      setSelectedPlatformId(item.id);
-      setFilterMode("all");
-      setOnlyFavorites(false);
-      setSelectedIndex(0);
-    }
-  };
-
-  // Filter games based on platform, type, favorites and search in Big Picture
-  const filteredGames = useMemo(() => {
-    return games.filter((g) => {
-      const matchPlat = !selectedPlatformId || g.original_platform_id === selectedPlatformId;
-      const matchType =
-        filterMode === "all" ||
-        (filterMode === "recomp" && !g.is_emulator) ||
-        (filterMode === "emulator" && Boolean(g.is_emulator));
-      const matchFav = !onlyFavorites || Boolean(g.is_favorite);
-      const matchSearch =
-        !searchQuery.trim() ||
-        g.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        g.original_platform_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (g.platform_name && g.platform_name.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchPlat && matchType && matchFav && matchSearch;
-    });
-  }, [games, selectedPlatformId, filterMode, onlyFavorites, searchQuery]);
-
-  // Keep selected index within bounds
-  useEffect(() => {
-    if (selectedIndex >= filteredGames.length) {
-      setSelectedIndex(Math.max(0, filteredGames.length - 1));
-    }
-  }, [filteredGames.length, selectedIndex]);
-
-  // Tab Navigation for Big Picture (L2 / R2 / LT / RT / ZL / ZR / PageUp / PageDown)
-  const cycleTab = (direction: number) => {
-    const tabs: ("library" | "replay" | "achievements")[] = ["library", "replay", "achievements"];
-    const currentIdx = tabs.indexOf(activeTab);
-    let nextIdx = currentIdx + direction;
-    if (nextIdx < 0) nextIdx = tabs.length - 1;
-    if (nextIdx >= tabs.length) nextIdx = 0;
-    const target = tabs[nextIdx];
-    playSound("select");
-    if (target === "achievements") {
-      setAchievementsTargetGame(filteredGames[selectedIndex] || null);
-    }
-    setActiveTab(target);
-  };
-
-  // Platform cycling (LB / RB / D-Pad Up / Down)
-  const cyclePlatform = (direction: number) => {
-    const enabledPlatforms = platforms.filter((p) => p.is_enabled);
-    const platformOptions: (string | null)[] = [null, ...enabledPlatforms.map((p) => p.id)];
-    const currentIndex = platformOptions.indexOf(selectedPlatformId);
-    let nextIndex = currentIndex + direction;
-    if (nextIndex < 0) nextIndex = platformOptions.length - 1;
-    if (nextIndex >= platformOptions.length) nextIndex = 0;
-
-    setSelectedPlatformId(platformOptions[nextIndex]);
-    setSelectedIndex(0);
-  };
-
-  // Digital Clock Updater
+  // Clock tick
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      setClock(
-        now.toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      );
+      setClock(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Center selected card into view
+  // Center selected shelf card
   useEffect(() => {
-    if (carouselRef.current && activeTab === "library") {
+    if (carouselRef.current && filteredGames.length > 0) {
       const activeCard = carouselRef.current.children[selectedIndex] as HTMLElement;
       if (activeCard) {
         activeCard.scrollIntoView({
@@ -547,229 +262,210 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         });
       }
     }
-  }, [selectedIndex, activeTab]);
+  }, [selectedIndex, filteredGames.length]);
 
-  // Focus search input when toggled
-  useEffect(() => {
-    if (isSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+  // Cycle Dashboard Themes (Start / Menu button shortcut)
+  const cycleTheme = () => {
+    const themes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
+    const nextIdx = (themes.indexOf(currentBpTheme) + 1) % themes.length;
+    const nextTheme = themes[nextIdx];
+    setCurrentBpTheme(nextTheme);
+    if (onUpdateBigPictureTheme) onUpdateBigPictureTheme(nextTheme);
+    playThemeSound("select");
+  };
+
+  // Apply selected filter
+  const applyFilter = (pill: FilterPill) => {
+    playThemeSound("select");
+    if (pill.type === "all") {
+      setSelectedPlatformId(null);
+      setFilterMode("all");
+      setOnlyFavorites(false);
+    } else if (pill.type === "recomp") {
+      setSelectedPlatformId(null);
+      setFilterMode("recomp");
+      setOnlyFavorites(false);
+    } else if (pill.type === "emulator") {
+      setSelectedPlatformId(null);
+      setFilterMode("emulator");
+      setOnlyFavorites(false);
+    } else if (pill.type === "favorites") {
+      setSelectedPlatformId(null);
+      setFilterMode("all");
+      setOnlyFavorites(true);
+    } else if (pill.type === "platform") {
+      setSelectedPlatformId(pill.id);
+      setFilterMode("all");
+      setOnlyFavorites(false);
     }
-  }, [isSearchOpen]);
+    setSelectedIndex(0);
+    setFocusZone("shelf");
+  };
 
-  // Gamepad Loop & Input Navigation
+  // 100% Gamepad Polling Loop (Standard Gamepad API)
   useEffect(() => {
     let animId: number;
 
-    const checkGamepad = () => {
+    const pollGamepad = () => {
       const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-      let activePad: Gamepad | null = null;
+      let pad: Gamepad | null = null;
       for (const gp of gamepads) {
         if (gp && gp.connected) {
-          activePad = gp;
+          pad = gp;
           break;
         }
       }
 
-      if (activePad) {
-        const simpleName = activePad.id.includes("Xbox")
-          ? "Controle Xbox"
-          : activePad.id.includes("DualSense") || activePad.id.includes("Wireless Controller")
-          ? "PlayStation DualSense"
+      if (pad) {
+        const name = pad.id.includes("Xbox")
+          ? "Xbox Controller"
+          : pad.id.includes("DualSense") || pad.id.includes("Wireless")
+          ? "PlayStation Controller"
           : "Gamepad Conectado";
-        setGamepadName(simpleName);
+        setGamepadName(name);
 
         const now = Date.now();
-        // Debounce gamepad inputs (180ms)
-        if (now - lastButtonPress.current > 180) {
-          const dpadLeft = activePad.buttons[14]?.pressed || activePad.axes[0] < -0.5;
-          const dpadRight = activePad.buttons[15]?.pressed || activePad.axes[0] > 0.5;
-          const dpadUp = activePad.buttons[12]?.pressed || activePad.axes[1] < -0.5;
-          const dpadDown = activePad.buttons[13]?.pressed || activePad.axes[1] > 0.5;
-          const btnA = activePad.buttons[0]?.pressed;
-          const btnB = activePad.buttons[1]?.pressed;
-          const btnX = activePad.buttons[2]?.pressed;
-          const btnY = activePad.buttons[3]?.pressed;
-          const btnLB = activePad.buttons[4]?.pressed;
-          const btnRB = activePad.buttons[5]?.pressed;
-          const btnLT = Boolean(
-            activePad.buttons[6]?.pressed ||
-            (typeof activePad.buttons[6]?.value === "number" && activePad.buttons[6].value > 0.4)
-          );
-          const btnRT = Boolean(
-            activePad.buttons[7]?.pressed ||
-            (typeof activePad.buttons[7]?.value === "number" && activePad.buttons[7].value > 0.4)
-          );
-          const btnBack = activePad.buttons[8]?.pressed;
-          const btnStart = activePad.buttons[9]?.pressed;
-          const btnGuide = activePad.buttons[16]?.pressed;
+        // 175ms input debounce for snappy navigation
+        if (now - lastButtonPress.current > 175) {
+          const dpadLeft = pad.buttons[14]?.pressed || pad.axes[0] < -0.5;
+          const dpadRight = pad.buttons[15]?.pressed || pad.axes[0] > 0.5;
+          const dpadUp = pad.buttons[12]?.pressed || pad.axes[1] < -0.5;
+          const dpadDown = pad.buttons[13]?.pressed || pad.axes[1] > 0.5;
 
-          // Gamepad Navigation inside Theme Selection Modal
-          if (isThemeModalOpen) {
-            const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
-            if (dpadLeft) {
-              lastButtonPress.current = now;
-              playThemeSound("move");
-              setThemeModalFocusIndex((prev) => Math.max(0, prev - 1));
-            } else if (dpadRight) {
-              lastButtonPress.current = now;
-              playThemeSound("move");
-              setThemeModalFocusIndex((prev) => Math.min(bpThemes.length - 1, prev + 1));
-            } else if (btnA) {
-              lastButtonPress.current = now;
-              const chosen = bpThemes[themeModalFocusIndex];
-              if (chosen) {
-                playSound("select", chosen);
-                setCurrentBpTheme(chosen);
-                if (onUpdateBigPictureTheme) onUpdateBigPictureTheme(chosen);
-              }
-              setIsThemeModalOpen(false);
-            } else if (btnB) {
-              lastButtonPress.current = now;
-              playThemeSound("back");
-              setIsThemeModalOpen(false);
+          const btnA = pad.buttons[0]?.pressed;      // Confirm / Launch
+          const btnB = pad.buttons[1]?.pressed;      // Back / Exit
+          const btnX = pad.buttons[2]?.pressed;      // Favorite Toggle
+          const btnY = pad.buttons[3]?.pressed;      // Game Details
+          const btnLB = pad.buttons[4]?.pressed;     // Prev Filter
+          const btnRB = pad.buttons[5]?.pressed;     // Next Filter
+          const btnStart = pad.buttons[9]?.pressed;  // Cycle Theme
+          const btnGuide = pad.buttons[16]?.pressed; // Home Exit
+
+          if (btnGuide) {
+            lastButtonPress.current = now;
+            onExitBigPicture();
+            return;
+          }
+
+          if (btnStart) {
+            lastButtonPress.current = now;
+            cycleTheme();
+            return;
+          }
+
+          // LB / RB quick filter cycling
+          if (btnLB) {
+            lastButtonPress.current = now;
+            playThemeSound("move");
+            setFilterFocusIndex((prev) => {
+              const next = Math.max(0, prev - 1);
+              applyFilter(filterPills[next]);
+              return next;
+            });
+            return;
+          } else if (btnRB) {
+            lastButtonPress.current = now;
+            playThemeSound("move");
+            setFilterFocusIndex((prev) => {
+              const next = Math.min(filterPills.length - 1, prev + 1);
+              applyFilter(filterPills[next]);
+              return next;
+            });
+            return;
+          }
+
+          // X Button: Toggle Favorite
+          if (btnX && selectedGame && onToggleFavorite) {
+            lastButtonPress.current = now;
+            playThemeSound("select");
+            onToggleFavorite(selectedGame);
+            return;
+          }
+
+          // Y Button: Open Details
+          if (btnY && selectedGame && onOpenGameDetails) {
+            lastButtonPress.current = now;
+            playThemeSound("select");
+            onOpenGameDetails(selectedGame);
+            return;
+          }
+
+          // B Button: Back / Exit
+          if (btnB) {
+            lastButtonPress.current = now;
+            playThemeSound("back");
+            if (focusZone === "filters" || focusZone === "actions") {
+              setFocusZone("shelf");
+            } else {
+              onExitBigPicture();
             }
             return;
           }
 
-          // L2 / R2 (or LT / RT / ZL / ZR) Primary View Navigation (Works across all tabs)
-          if (btnLT) {
-            lastButtonPress.current = now;
-            cycleTab(-1);
-          } else if (btnRT) {
-            lastButtonPress.current = now;
-            cycleTab(1);
-          } else if (btnStart) {
-            lastButtonPress.current = now;
-            playThemeSound("select");
-            const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
-            const currentIdx = bpThemes.indexOf(currentBpTheme);
-            setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
-            setIsThemeModalOpen(true);
-          } else if (btnBack) {
-            // View / Select button instantly jumps to top header actions or back to shelf
-            lastButtonPress.current = now;
-            playSound("move");
-            setFocusZone((prev) => (prev === "header" ? "shelf" : "header"));
-          } else if (btnGuide) {
-            lastButtonPress.current = now;
-            onExitBigPicture();
-          } else if (focusZone === "header") {
+          // Zone Navigation Logic
+          if (focusZone === "filters") {
             if (dpadLeft) {
               lastButtonPress.current = now;
-              playSound("move");
-              setHeaderFocusIndex((prev) => Math.max(0, prev - 1));
-            } else if (dpadRight) {
-              lastButtonPress.current = now;
-              playSound("move");
-              setHeaderFocusIndex((prev) => Math.min(availableHeaderActions.length - 1, prev + 1));
-            } else if (dpadDown) {
-              lastButtonPress.current = now;
-              playSound("move");
-              if (activeTab === "library") {
-                setFocusZone("filters");
-              } else {
-                setFocusZone("shelf");
-              }
-            } else if (btnA) {
-              lastButtonPress.current = now;
-              const action = availableHeaderActions[headerFocusIndex];
-              if (action) {
-                triggerHeaderAction(action);
-              }
-            } else if (btnB) {
-              lastButtonPress.current = now;
-              playSound("back");
-              setFocusZone("shelf");
-            }
-          } else if (focusZone === "filters") {
-            if (dpadLeft) {
-              lastButtonPress.current = now;
-              playSound("move");
+              playThemeSound("move");
               setFilterFocusIndex((prev) => Math.max(0, prev - 1));
             } else if (dpadRight) {
               lastButtonPress.current = now;
-              playSound("move");
+              playThemeSound("move");
               setFilterFocusIndex((prev) => Math.min(filterPills.length - 1, prev + 1));
-            } else if (dpadUp) {
+            } else if (dpadDown) {
               lastButtonPress.current = now;
-              playSound("move");
-              setFocusZone("header");
-            } else if (dpadDown || btnB) {
-              lastButtonPress.current = now;
-              playSound(btnB ? "back" : "move");
+              playThemeSound("move");
               setFocusZone("shelf");
             } else if (btnA) {
               lastButtonPress.current = now;
-              applyFilterPill(filterFocusIndex);
+              applyFilter(filterPills[filterFocusIndex]);
+            }
+          } else if (focusZone === "actions") {
+            if (dpadLeft) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setActionFocusIndex((prev) => Math.max(0, prev - 1));
+            } else if (dpadRight) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setActionFocusIndex((prev) => Math.min(2, prev + 1));
+            } else if (dpadDown) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setFocusZone("shelf");
+            } else if (btnA && selectedGame) {
+              lastButtonPress.current = now;
+              playThemeSound("select");
+              if (actionFocusIndex === 0) {
+                if (selectedGame.is_running) onStopGame(selectedGame);
+                else onLaunchGame(selectedGame);
+              } else if (actionFocusIndex === 1 && onOpenGameDetails) {
+                onOpenGameDetails(selectedGame);
+              } else if (actionFocusIndex === 2 && onToggleFavorite) {
+                onToggleFavorite(selectedGame);
+              }
             }
           } else {
             // focusZone === "shelf"
-            if (activeTab === "library") {
-              if (dpadLeft) {
-                lastButtonPress.current = now;
-                playSound("move");
-                setSelectedIndex((prev) => Math.max(0, prev - 1));
-              } else if (dpadRight) {
-                lastButtonPress.current = now;
-                playSound("move");
-                setSelectedIndex((prev) => Math.min(filteredGames.length - 1, prev + 1));
-              } else if (dpadUp) {
-                lastButtonPress.current = now;
-                playSound("move");
-                setFocusZone("filters");
-              } else if (btnLB) {
-                lastButtonPress.current = now;
-                playSound("move");
-                cyclePlatform(-1);
-              } else if (btnRB) {
-                lastButtonPress.current = now;
-                playSound("move");
-                cyclePlatform(1);
-              } else if (btnA) {
-                lastButtonPress.current = now;
-                const current = filteredGames[selectedIndex];
-                if (current) {
-                  playSound("select");
-                  if (current.is_running) {
-                    onStopGame(current);
-                  } else {
-                    onLaunchGame(current);
-                  }
-                }
-              } else if (btnB) {
-                lastButtonPress.current = now;
-                playSound("back");
-                if (isSearchOpen || searchQuery) {
-                  setIsSearchOpen(false);
-                  setSearchQuery("");
-                } else {
-                  onExitBigPicture();
-                }
-              } else if (btnX) {
-                lastButtonPress.current = now;
-                const current = filteredGames[selectedIndex];
-                if (current && onOpenGameDetails) {
-                  playSound("select");
-                  onOpenGameDetails(current);
-                }
-              } else if (btnY) {
-                lastButtonPress.current = now;
-                const current = filteredGames[selectedIndex];
-                if (current && onToggleFavorite) {
-                  playSound("select");
-                  onToggleFavorite(current);
-                }
-              }
-            } else {
-              // In replay or achievements views
-              if (dpadUp) {
-                lastButtonPress.current = now;
-                playSound("move");
-                setFocusZone("header");
-              } else if (btnB) {
-                lastButtonPress.current = now;
-                playSound("back");
-                setActiveTab("library");
+            if (dpadLeft) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setSelectedIndex((prev) => Math.max(0, prev - 1));
+            } else if (dpadRight) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setSelectedIndex((prev) => Math.min(filteredGames.length - 1, prev + 1));
+            } else if (dpadUp) {
+              lastButtonPress.current = now;
+              playThemeSound("move");
+              setFocusZone("actions");
+            } else if (btnA && selectedGame) {
+              lastButtonPress.current = now;
+              playThemeSound("select");
+              if (selectedGame.is_running) {
+                onStopGame(selectedGame);
+              } else {
+                onLaunchGame(selectedGame);
               }
             }
           }
@@ -778,1215 +474,407 @@ export const BigPictureMode: React.FC<BigPictureModeProps> = ({
         setGamepadName(null);
       }
 
-      animId = requestAnimationFrame(checkGamepad);
+      animId = requestAnimationFrame(pollGamepad);
     };
 
-    animId = requestAnimationFrame(checkGamepad);
+    animId = requestAnimationFrame(pollGamepad);
     return () => cancelAnimationFrame(animId);
   }, [
-    activeTab,
-    filteredGames,
-    selectedIndex,
     focusZone,
-    headerFocusIndex,
     filterFocusIndex,
-    availableHeaderActions,
+    actionFocusIndex,
+    selectedIndex,
+    filteredGames,
+    selectedGame,
     filterPills,
     currentBpTheme,
-    isThemeModalOpen,
-    themeModalFocusIndex,
-    onUpdateBigPictureTheme,
-    onToggleFavorite,
-    onLaunchGame,
-    onStopGame,
-    onExitBigPicture,
-    onOpenGameDetails,
-    isSearchOpen,
-    searchQuery,
   ]);
 
-  // Keyboard navigation
+  // Keyboard Navigation Fallback (Arrow Keys, Enter, Esc, Space)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow normal typing inside search input
-      if (document.activeElement === searchInputRef.current) {
-        if (e.key === "Escape") {
-          setIsSearchOpen(false);
-          setSearchQuery("");
-          (document.activeElement as HTMLElement)?.blur();
-          setFocusZone("header");
-        } else if (e.key === "ArrowDown") {
-          (document.activeElement as HTMLElement)?.blur();
-          setFocusZone("shelf");
-        }
-        return;
-      }
-
-      // Keyboard Navigation inside Theme Selection Modal
-      if (isThemeModalOpen) {
-        const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
-        if (e.key === "ArrowLeft") {
-          playThemeSound("move");
-          setThemeModalFocusIndex((prev) => Math.max(0, prev - 1));
-        } else if (e.key === "ArrowRight") {
-          playThemeSound("move");
-          setThemeModalFocusIndex((prev) => Math.min(bpThemes.length - 1, prev + 1));
-        } else if (e.key === "Enter") {
-          const chosen = bpThemes[themeModalFocusIndex];
-          if (chosen) {
-            playSound("select", chosen);
-            setCurrentBpTheme(chosen);
-            if (onUpdateBigPictureTheme) onUpdateBigPictureTheme(chosen);
-          }
-          setIsThemeModalOpen(false);
-        } else if (e.key === "Escape") {
-          playThemeSound("back");
-          setIsThemeModalOpen(false);
-        }
-        return;
-      }
-
-      // L2 / R2 Keyboard Equivalents (Tab Navigation)
-      if (e.key === "PageUp" || e.key === "[" || e.key === "{") {
-        e.preventDefault();
-        cycleTab(-1);
-        return;
-      }
-      if (e.key === "PageDown" || e.key === "]" || e.key === "}") {
-        e.preventDefault();
-        cycleTab(1);
-        return;
-      }
-      if (e.key === "1") {
-        playSound("select");
-        setActiveTab("library");
-        return;
-      }
-      if (e.key === "2") {
-        playSound("select");
-        setActiveTab("replay");
-        return;
-      }
-      if (e.key === "3") {
-        playSound("select");
-        setAchievementsTargetGame(filteredGames[selectedIndex] || null);
-        setActiveTab("achievements");
-        return;
-      }
-
       if (e.key === "Escape") {
-        playSound("back");
-        if (focusZone !== "shelf") {
-          setFocusZone("shelf");
-        } else if (activeTab !== "library") {
-          setActiveTab("library");
-        } else if (isSearchOpen || searchQuery) {
-          setIsSearchOpen(false);
-          setSearchQuery("");
-        } else {
-          onExitBigPicture();
-        }
+        playThemeSound("back");
+        if (focusZone !== "shelf") setFocusZone("shelf");
+        else onExitBigPicture();
         return;
       }
 
-      if (e.key === "Tab") {
-        e.preventDefault();
-        playSound("move");
-        setFocusZone((prev) => {
-          if (prev === "shelf") return "filters";
-          if (prev === "filters") return "header";
-          return "shelf";
-        });
-        return;
-      }
-
-      if (focusZone === "header") {
-        if (e.key === "ArrowLeft") {
-          playSound("move");
-          setHeaderFocusIndex((prev) => Math.max(0, prev - 1));
-        } else if (e.key === "ArrowRight") {
-          playSound("move");
-          setHeaderFocusIndex((prev) => Math.min(availableHeaderActions.length - 1, prev + 1));
-        } else if (e.key === "ArrowDown") {
-          playSound("move");
-          if (activeTab === "library") {
-            setFocusZone("filters");
-          } else {
-            setFocusZone("shelf");
-          }
-        } else if (e.key === "Enter") {
-          const action = availableHeaderActions[headerFocusIndex];
-          if (action) {
-            triggerHeaderAction(action);
-          }
-        }
-        return;
-      }
-
-      if (focusZone === "filters") {
-        if (e.key === "ArrowLeft") {
-          playSound("move");
+      if (e.key === "ArrowLeft") {
+        playThemeSound("move");
+        if (focusZone === "filters") {
           setFilterFocusIndex((prev) => Math.max(0, prev - 1));
-        } else if (e.key === "ArrowRight") {
-          playSound("move");
-          setFilterFocusIndex((prev) => Math.min(filterPills.length - 1, prev + 1));
-        } else if (e.key === "ArrowUp") {
-          playSound("move");
-          setFocusZone("header");
-        } else if (e.key === "ArrowDown") {
-          playSound("move");
-          setFocusZone("shelf");
-        } else if (e.key === "Enter") {
-          applyFilterPill(filterFocusIndex);
-        }
-        return;
-      }
-
-      // focusZone === "shelf"
-      if (activeTab === "library") {
-        if (e.key === "ArrowLeft") {
-          playSound("move");
+        } else if (focusZone === "actions") {
+          setActionFocusIndex((prev) => Math.max(0, prev - 1));
+        } else {
           setSelectedIndex((prev) => Math.max(0, prev - 1));
-        } else if (e.key === "ArrowRight") {
-          playSound("move");
-          setSelectedIndex((prev) => Math.min(filteredGames.length - 1, prev + 1));
-        } else if (e.key === "ArrowUp") {
-          playSound("move");
-          setFocusZone("filters");
-        } else if (e.key === "Enter") {
-          const current = filteredGames[selectedIndex];
-          if (current) {
-            playSound("select");
-            if (current.is_running) {
-              onStopGame(current);
-            } else {
-              onLaunchGame(current);
-            }
-          }
-        } else if (e.key === "x" || e.key === "X" || e.key === "d" || e.key === "D") {
-          e.preventDefault();
-          const current = filteredGames[selectedIndex];
-          if (current && onOpenGameDetails) {
-            playSound("select");
-            onOpenGameDetails(current);
-          }
-        } else if (e.key === "f" || e.key === "F") {
-          const current = filteredGames[selectedIndex];
-          if (current && onToggleFavorite) {
-            playSound("select");
-            onToggleFavorite(current);
-          }
-        } else if (e.key === "r" || e.key === "R") {
-          playSound("select");
-          setActiveTab("replay");
-        } else if (e.key === "t" || e.key === "T") {
-          playSound("select");
-          setAchievementsTargetGame(filteredGames[selectedIndex] || null);
-          setActiveTab("achievements");
-        } else if (e.key === "/") {
-          e.preventDefault();
-          setIsSearchOpen(true);
         }
-      } else {
-        if (e.key === "ArrowUp") {
-          playSound("move");
-          setFocusZone("header");
+      } else if (e.key === "ArrowRight") {
+        playThemeSound("move");
+        if (focusZone === "filters") {
+          setFilterFocusIndex((prev) => Math.min(filterPills.length - 1, prev + 1));
+        } else if (focusZone === "actions") {
+          setActionFocusIndex((prev) => Math.min(2, prev + 1));
+        } else {
+          setSelectedIndex((prev) => Math.min(filteredGames.length - 1, prev + 1));
+        }
+      } else if (e.key === "ArrowUp") {
+        playThemeSound("move");
+        if (focusZone === "shelf") setFocusZone("actions");
+        else if (focusZone === "actions") setFocusZone("filters");
+      } else if (e.key === "ArrowDown") {
+        playThemeSound("move");
+        if (focusZone === "filters") setFocusZone("actions");
+        else if (focusZone === "actions") setFocusZone("shelf");
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        playThemeSound("select");
+        if (focusZone === "filters") {
+          applyFilter(filterPills[filterFocusIndex]);
+        } else if (focusZone === "actions" && selectedGame) {
+          if (actionFocusIndex === 0) {
+            if (selectedGame.is_running) onStopGame(selectedGame);
+            else onLaunchGame(selectedGame);
+          } else if (actionFocusIndex === 1 && onOpenGameDetails) {
+            onOpenGameDetails(selectedGame);
+          } else if (actionFocusIndex === 2 && onToggleFavorite) {
+            onToggleFavorite(selectedGame);
+          }
+        } else if (selectedGame) {
+          if (selectedGame.is_running) onStopGame(selectedGame);
+          else onLaunchGame(selectedGame);
+        }
+      } else if (e.key === "f" || e.key === "F") {
+        if (selectedGame && onToggleFavorite) {
+          playThemeSound("select");
+          onToggleFavorite(selectedGame);
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    activeTab,
-    filteredGames,
-    selectedIndex,
-    focusZone,
-    headerFocusIndex,
-    filterFocusIndex,
-    availableHeaderActions,
-    filterPills,
-    currentBpTheme,
-    isThemeModalOpen,
-    themeModalFocusIndex,
-    onUpdateBigPictureTheme,
-    onToggleFavorite,
-    onLaunchGame,
-    onStopGame,
-    onExitBigPicture,
-    onOpenGameDetails,
-    isSearchOpen,
-    searchQuery,
-  ]);
+  }, [focusZone, filterFocusIndex, actionFocusIndex, selectedIndex, selectedGame, filterPills]);
 
-  const selectedGame = filteredGames[selectedIndex];
-  const platformColor = selectedGame?.platform_brand_color || "#00E5FF";
+  const platformColor = selectedGame?.platform_brand_color || activeBpTheme.accentColor;
 
   return (
-    <div
-      className={`big-picture-wrapper theme-${theme} bp-dashboard-${currentBpTheme}`}
-      data-theme={theme}
-      data-bp-theme={currentBpTheme}
-    >
-      {/* IMMERSIVE DYNAMIC BACKDROP */}
-      <div className="big-picture-backdrop">
+    <div className="bp-root">
+      {/* 1 · ARTWORK BACKDROP WITH AMBIENT BLUR */}
+      <div className="bp-backdrop">
         {selectedGame?.banner_url || selectedGame?.cover_url ? (
           <img
             src={formatImageUrl(selectedGame.banner_url || selectedGame.cover_url)}
-            alt={selectedGame.title}
-            className="big-picture-backdrop-img"
-            referrerPolicy="no-referrer"
+            alt=""
+            className="bp-backdrop-image"
           />
-        ) : (
-          <div className="big-picture-backdrop-placeholder" />
-        )}
-        <div className="big-picture-theme-ambient" />
-        <div className="big-picture-theme-spotlight" />
-        <div className="big-picture-backdrop-overlay" />
+        ) : null}
+        <div className="bp-backdrop-overlay" />
       </div>
 
-      {/* TOP CONSOLE HUD */}
-      <header className="big-picture-hud">
-        <div className="hud-left">
-          <div
-            className="hud-logo-tag"
-            onClick={() => {
-              playThemeSound("select");
-              setActiveTab("library");
-            }}
-            title="Ir para Biblioteca"
-          >
-            <div
-              className="hud-logo-icon-box"
-              style={{
-                background: activeBpTheme.accentColor,
-                color: "#060910",
-                boxShadow: `0 0 16px ${activeBpTheme.accentColor}66`,
-              }}
-            >
-              <ConsoleIcon iconName={activeBpTheme.icon} size={18} color="#060910" />
-            </div>
-            <span>{activeBpTheme.guideName}</span>
+      {/* 2 · TOP CONSOLE HUD */}
+      <header className="bp-hud">
+        <div className="bp-hud-brand">
+          <div className="bp-hud-logo" style={{ background: activeBpTheme.accentColor }}>
+            <ConsoleIcon iconName={activeBpTheme.icon} size={20} color="#06090e" />
           </div>
+          <span className="bp-hud-title">{activeBpTheme.name}</span>
 
-          {/* Primary View Navigation Tabs with L2 / R2 Prompts */}
-          <nav className="hud-nav-tabs" aria-label="Navegação Principal">
-            <button
-              type="button"
-              className="hud-tab-trigger-hint left"
-              onClick={() => cycleTab(-1)}
-              title="Aba Anterior (L2 / LT / ZL / PageUp / [)"
-            >
-              <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={17} />
-            </button>
-
-            <button
-              className={`hud-nav-tab ${activeTab === "library" ? "active" : ""}`}
-              onClick={() => {
-                playSound("select");
-                setActiveTab("library");
-              }}
-            >
-              <Gamepad2 size={17} />
-              <span>Biblioteca</span>
-            </button>
-            <button
-              className={`hud-nav-tab ${activeTab === "replay" ? "active" : ""}`}
-              onClick={() => {
-                playSound("select");
-                setActiveTab("replay");
-              }}
-            >
-              <TrendingUp size={17} />
-              <span>Gaming Statistics</span>
-            </button>
-            <button
-              className={`hud-nav-tab ${activeTab === "achievements" ? "active" : ""}`}
-              onClick={() => {
-                playSound("select");
-                setAchievementsTargetGame(selectedGame || null);
-                setActiveTab("achievements");
-              }}
-            >
-              <Trophy size={17} />
-              <span>Conquistas</span>
-            </button>
-
-            <button
-              type="button"
-              className="hud-tab-trigger-hint right"
-              onClick={() => cycleTab(1)}
-              title="Próxima Aba (R2 / RT / ZR / PageDown / ])"
-            >
-              <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={17} />
-            </button>
-          </nav>
-        </div>
-
-        <div className="hud-right">
-          {/* Action Buttons: Search */}
-          <div className="hud-actions-group">
-            <button
-              className={`hud-action-btn ${isSearchOpen || searchQuery ? "active" : ""} ${
-                focusZone === "header" && availableHeaderActions[headerFocusIndex] === "search"
-                  ? "gp-focused"
-                  : ""
-              }`}
-              onClick={() => {
-                playSound("move");
-                setIsSearchOpen((prev) => !prev);
-                if (activeTab !== "library") setActiveTab("library");
-              }}
-              onMouseEnter={() => {
-                const idx = availableHeaderActions.indexOf("search");
-                if (idx !== -1) setHeaderFocusIndex(idx);
-              }}
-              title="Buscar Jogos (/)"
-            >
-              <Search size={15} />
-              <span>Buscar</span>
-            </button>
-          </div>
-
-          {/* ACTIVE BIG PICTURE CONSOLE DASHBOARD HIGHLIGHT PILL */}
+          {/* Theme Cycler Pill */}
           <div
-            className={`hud-theme-badge hud-bp-theme-badge ${
-              focusZone === "header" && availableHeaderActions[headerFocusIndex] === "theme"
-                ? "gp-focused"
-                : ""
-            }`}
-            title={`Tema do Modo Big Picture: ${activeBpTheme.name} (Clique ou aperte A para alterar o estilo da dashboard)`}
-            onClick={() => {
-              playThemeSound("select");
-              const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
-              const currentIdx = bpThemes.indexOf(currentBpTheme);
-              setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
-              setIsThemeModalOpen(true);
-            }}
-            onMouseEnter={() => {
-              const idx = availableHeaderActions.indexOf("theme");
-              if (idx !== -1) setHeaderFocusIndex(idx);
-            }}
+            className="bp-dashboard-badge"
+            onClick={cycleTheme}
+            title="Aperte START / MENU no controle para alternar o layout do console"
           >
-            <ConsoleIcon iconName={activeBpTheme.icon} size={15} color={activeBpTheme.accentColor} />
-            <span className="hud-theme-label">Dashboard:</span>
-            <span className="hud-theme-val" style={{ color: activeBpTheme.accentColor }}>
-              {activeBpTheme.badgeLabel}
-            </span>
+            <span>Tema: {activeBpTheme.badgeLabel}</span>
             <span
-              className="hud-theme-dot"
               style={{
-                backgroundColor: activeBpTheme.accentColor,
-                boxShadow: `0 0 10px ${activeBpTheme.accentColor}`,
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: activeBpTheme.accentColor,
+                boxShadow: `0 0 8px ${activeBpTheme.accentColor}`,
               }}
             />
           </div>
+        </div>
 
-          <div className="hud-controller-badge">
-            <Gamepad2 size={16} color={gamepadName ? "var(--accent-green)" : "var(--text-muted)"} />
-            <span>{gamepadName || "Teclado Ativo"}</span>
+        <div className="bp-hud-status">
+          <div className="bp-gamepad-indicator">
+            <Gamepad2 size={16} color={gamepadName ? "var(--color-success)" : "var(--color-text-muted)"} />
+            <span>{gamepadName || "Teclado / Joystick"}</span>
           </div>
-
-          <div className="hud-clock">{clock}</div>
-
-          <button
-            className={`btn-exit-big-picture ${
-              focusZone === "header" && availableHeaderActions[headerFocusIndex] === "exit"
-                ? "gp-focused"
-                : ""
-            }`}
-            onClick={onExitBigPicture}
-            onMouseEnter={() => {
-              const idx = availableHeaderActions.indexOf("exit");
-              if (idx !== -1) setHeaderFocusIndex(idx);
-            }}
-            title="Sair do Modo Big Picture (ESC)"
-          >
-            <X size={18} />
-            <span>Sair</span>
-          </button>
+          <div className="bp-clock">{clock}</div>
         </div>
       </header>
 
-      {/* VIEW CONTENT ROUTING */}
-      {activeTab === "library" ? (
-        <>
-          {/* SUB-HUD: CATEGORY, PLATFORMS, AND SEARCH BAR */}
-          <div className="big-picture-subhud">
-            <div className="hud-platform-pills">
-              <button
-                ref={(el) => {
-                  filterPillRefs.current[0] = el;
-                }}
-                className={`hud-pill ${
-                  selectedPlatformId === null && filterMode === "all" && !onlyFavorites ? "active" : ""
-                } ${focusZone === "filters" && filterFocusIndex === 0 ? "gp-focused" : ""}`}
-                onClick={() => {
-                  playSound("move");
-                  setSelectedPlatformId(null);
-                  setFilterMode("all");
-                  setOnlyFavorites(false);
-                  setSelectedIndex(0);
-                }}
-              >
-                Todos ({games.length})
-              </button>
-              <button
-                ref={(el) => {
-                  filterPillRefs.current[1] = el;
-                }}
-                className={`hud-pill ${
-                  filterMode === "recomp" && selectedPlatformId === null && !onlyFavorites ? "active" : ""
-                } ${focusZone === "filters" && filterFocusIndex === 1 ? "gp-focused" : ""}`}
-                onClick={() => {
-                  playSound("move");
-                  setSelectedPlatformId(null);
-                  setFilterMode("recomp");
-                  setOnlyFavorites(false);
-                  setSelectedIndex(0);
-                }}
+      {/* 3 · QUICK FILTER BAR (LB / RB to cycle) */}
+      <div className="bp-filter-bar thin-scrollbar">
+        {filterPills.map((pill, idx) => {
+          const isFocused = focusZone === "filters" && filterFocusIndex === idx;
+          const isActive =
+            (pill.type === "all" && filterMode === "all" && selectedPlatformId === null && !onlyFavorites) ||
+            (pill.type === "recomp" && filterMode === "recomp" && selectedPlatformId === null && !onlyFavorites) ||
+            (pill.type === "emulator" && filterMode === "emulator" && selectedPlatformId === null && !onlyFavorites) ||
+            (pill.type === "favorites" && onlyFavorites) ||
+            (pill.type === "platform" && selectedPlatformId === pill.id);
+
+          return (
+            <button
+              key={idx}
+              ref={(el) => {
+                filterPillRefs.current[idx] = el;
+              }}
+              type="button"
+              className={`bp-filter-pill ${isActive ? "active" : ""} ${isFocused ? "focused" : ""}`}
+              onClick={() => applyFilter(pill)}
+            >
+              <span>{pill.label}</span>
+              <span style={{ opacity: 0.7, fontSize: "0.72rem" }}>({pill.count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 4 · CENTER STAGE: FOCUSED HERO SHOWCASE */}
+      <main className="bp-stage">
+        {selectedGame ? (
+          <div className="bp-stage-info">
+            <div className="bp-stage-chips">
+              <span
+                className="badge"
                 style={{
-                  borderColor:
-                    filterMode === "recomp" && selectedPlatformId === null && !onlyFavorites
-                      ? "var(--accent-cyan)"
-                      : undefined,
-                  color:
-                    filterMode === "recomp" && selectedPlatformId === null && !onlyFavorites
-                      ? "var(--accent-cyan)"
-                      : undefined,
+                  background: "rgba(0, 0, 0, 0.75)",
+                  borderColor: platformColor,
+                  color: platformColor,
+                  padding: "4px 12px",
+                  fontSize: "0.8rem",
                 }}
               >
-                ⚡ Recomps PC ({recompCount})
-              </button>
-              <button
-                ref={(el) => {
-                  filterPillRefs.current[2] = el;
-                }}
-                className={`hud-pill ${
-                  filterMode === "emulator" && selectedPlatformId === null && !onlyFavorites ? "active" : ""
-                } ${focusZone === "filters" && filterFocusIndex === 2 ? "gp-focused" : ""}`}
-                onClick={() => {
-                  playSound("move");
-                  setSelectedPlatformId(null);
-                  setFilterMode("emulator");
-                  setOnlyFavorites(false);
-                  setSelectedIndex(0);
-                }}
-                style={{
-                  borderColor:
-                    filterMode === "emulator" && selectedPlatformId === null && !onlyFavorites
-                      ? "#A78BFA"
-                      : undefined,
-                  color:
-                    filterMode === "emulator" && selectedPlatformId === null && !onlyFavorites
-                      ? "#A78BFA"
-                      : undefined,
-                }}
-              >
-                🎮 Emuladores ({emulatorCount})
-              </button>
-              <button
-                ref={(el) => {
-                  filterPillRefs.current[3] = el;
-                }}
-                className={`hud-pill ${onlyFavorites ? "active" : ""} ${
-                  focusZone === "filters" && filterFocusIndex === 3 ? "gp-focused" : ""
-                }`}
-                onClick={() => {
-                  playSound("move");
-                  setOnlyFavorites((prev) => !prev);
-                  setSelectedIndex(0);
-                }}
-                style={{
-                  borderColor: onlyFavorites ? "#FFB84D" : undefined,
-                  color: onlyFavorites ? "#080a0f" : "#FFB84D",
-                  backgroundColor: onlyFavorites ? "#FFB84D" : undefined,
-                }}
-              >
-                <Star size={14} fill={onlyFavorites ? "#080a0f" : "currentColor"} />
-                <span>Favoritos ({favoritesCount})</span>
-              </button>
-              {platforms
-                .filter((p) => p.is_enabled)
-                .map((plat, platIdx) => {
-                  const pillIdx = 4 + platIdx;
-                  return (
-                    <button
-                      key={plat.id}
-                      ref={(el) => {
-                        filterPillRefs.current[pillIdx] = el;
-                      }}
-                      className={`hud-pill ${selectedPlatformId === plat.id ? "active" : ""} ${
-                        focusZone === "filters" && filterFocusIndex === pillIdx ? "gp-focused" : ""
-                      }`}
-                      onClick={() => {
-                        playSound("move");
-                        setSelectedPlatformId(plat.id);
-                        setFilterMode("all");
-                        setOnlyFavorites(false);
-                        setSelectedIndex(0);
-                      }}
+                <ConsoleIcon
+                  platformId={selectedGame.original_platform_id}
+                  name={selectedGame.platform_name}
+                  size={15}
+                  color={platformColor}
+                />
+                <span>{selectedGame.platform_name || selectedGame.original_platform_id.toUpperCase()}</span>
+                <span style={{ opacity: 0.6 }}>•</span>
+                <span>{selectedGame.is_emulator ? "EMULADOR" : "RECOMP PC"}</span>
+              </span>
+
+              {selectedGame.is_favorite && (
+                <span className="badge" style={{ background: "rgba(255, 184, 0, 0.2)", color: "#FFD54F", borderColor: "#FFB800" }}>
+                  <Star size={13} fill="currentColor" />
+                  <span>Favorito</span>
+                </span>
+              )}
+
+              {selectedGame.play_status === "completed" && (
+                <span className="badge badge-completed">Zerado</span>
+              )}
+            </div>
+
+            <h1 className="bp-stage-title">{selectedGame.title}</h1>
+
+            <div className="bp-stage-meta">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Clock size={16} color="var(--color-accent)" />
+                <span>Tempo Jogado: <strong>{formatPlaytime(selectedGame.total_playtime_seconds)}</strong></span>
+              </div>
+              {selectedGame.last_played_at && (
+                <span>Última vez: {new Date(selectedGame.last_played_at).toLocaleDateString("pt-BR")}</span>
+              )}
+            </div>
+
+            {/* ACTION BUTTONS (Selectable via D-Pad Up / Down) */}
+            <div className="bp-stage-actions">
+              {/* Play Button */}
+              {selectedGame.is_running ? (
+                <button
+                  type="button"
+                  className={`bp-btn-stop ${focusZone === "actions" && actionFocusIndex === 0 ? "focused" : ""}`}
+                  onClick={() => onStopGame(selectedGame)}
+                >
+                  <Square size={20} fill="currentColor" />
+                  <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
+                  <span>ENCERRAR JOGO</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`bp-btn-play ${focusZone === "actions" && actionFocusIndex === 0 ? "focused" : ""}`}
+                  onClick={() => onLaunchGame(selectedGame)}
+                >
+                  <Play size={22} fill="currentColor" />
+                  <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
+                  <span>JOGAR</span>
+                </button>
+              )}
+
+              {/* Details & Manage */}
+              {onOpenGameDetails && (
+                <button
+                  type="button"
+                  className={`bp-btn-action ${focusZone === "actions" && actionFocusIndex === 1 ? "focused" : ""}`}
+                  onClick={() => onOpenGameDetails(selectedGame)}
+                >
+                  <ControllerPromptBadge controllerType={controllerType} action="details" size={18} />
+                  <span>Detalhes & Saves</span>
+                </button>
+              )}
+
+              {/* Toggle Favorite */}
+              {onToggleFavorite && (
+                <button
+                  type="button"
+                  className={`bp-btn-action ${focusZone === "actions" && actionFocusIndex === 2 ? "focused" : ""}`}
+                  onClick={() => onToggleFavorite(selectedGame)}
+                >
+                  <ControllerPromptBadge controllerType={controllerType} action="favorite" size={18} />
+                  <Star size={16} fill={selectedGame.is_favorite ? "currentColor" : "none"} />
+                  <span>{selectedGame.is_favorite ? "Favoritado" : "Favoritar"}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "var(--color-text-muted)" }}>
+            <Gamepad2 size={64} style={{ opacity: 0.4, marginBottom: "16px" }} />
+            <h2>Nenhum jogo nesta categoria</h2>
+          </div>
+        )}
+
+        {/* 5 · HORIZONTAL POSTER CAROUSEL (Game card shelf) */}
+        <div className="bp-shelf">
+          <div className="bp-shelf-track thin-scrollbar" ref={carouselRef}>
+            {filteredGames.map((game, idx) => {
+              const isSelected = idx === selectedIndex;
+              const gColor = game.platform_brand_color || "var(--color-accent)";
+
+              return (
+                <div
+                  key={game.id}
+                  className={`bp-card ${isSelected && focusZone === "shelf" ? "focused" : ""}`}
+                  onClick={() => {
+                    playThemeSound("move");
+                    setSelectedIndex(idx);
+                    setFocusZone("shelf");
+                  }}
+                  onDoubleClick={() => onLaunchGame(game)}
+                  style={{
+                    ["--card-accent" as any]: gColor,
+                  }}
+                >
+                  {/* Card Artwork */}
+                  <div className="bp-card-media">
+                    {game.cover_url ? (
+                      <img src={formatImageUrl(game.cover_url)} alt={game.title} loading="lazy" />
+                    ) : (
+                      <div className="bp-card-fallback">
+                        <Gamepad2 size={42} color={gColor} />
+                        <span className="bp-card-fallback-title">{game.title}</span>
+                      </div>
+                    )}
+                    {/* Top edge glass gloss highlight */}
+                    <div className="bp-card-sheen" />
+                  </div>
+
+                  {/* Top Badges Bar */}
+                  <div className="bp-card-topbar">
+                    <div
+                      className="bp-card-platform-badge"
                       style={{
-                        borderColor: selectedPlatformId === plat.id ? plat.brand_color : undefined,
+                        borderColor: `${gColor}60`,
+                        background: "rgba(0, 0, 0, 0.75)",
                       }}
+                      title={game.platform_name || game.original_platform_id}
                     >
                       <ConsoleIcon
-                        platformId={plat.id}
-                        name={plat.name}
+                        platformId={game.original_platform_id}
+                        iconName={!game.is_emulator ? "recomp" : undefined}
                         size={15}
-                        color={plat.brand_color}
+                        color={gColor}
                       />
-                      <span>{plat.short_name}</span>
-                    </button>
-                  );
-                })}
-            </div>
-
-            {/* Quick Search Bar */}
-            {isSearchOpen && (
-              <div className="big-picture-search-bar">
-                <Search size={16} color="var(--accent-cyan)" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  className="big-picture-search-input"
-                  placeholder="Buscar jogo ou console..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setSelectedIndex(0);
-                  }}
-                />
-                {searchQuery && (
-                  <button
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#94a3b8",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                    onClick={() => setSearchQuery("")}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* CENTER STAGE: FOCUSED HERO SHOWCASE */}
-          <main className="big-picture-stage">
-            {selectedGame ? (
-              <div className="stage-hero-info">
-                <div
-                  className="origin-platform-badge"
-                  style={{
-                    borderColor: platformColor,
-                    color: platformColor,
-                  }}
-                >
-                  <ConsoleIcon
-                    platformId={selectedGame.original_platform_id}
-                    name={selectedGame.platform_name}
-                    size={16}
-                    color={platformColor}
-                  />
-                  <span>
-                    {selectedGame.platform_name || selectedGame.original_platform_id.toUpperCase()}
-                  </span>
-                  <span className="recomp-arrow">→</span>
-                  <span className="recomp-target">
-                    {selectedGame.is_emulator ? "JOGO EMULADO" : "PC RECOMP NATIVO"}
-                  </span>
-                </div>
-
-                <h1 className="stage-game-title">{selectedGame.title}</h1>
-
-                <div className="stage-meta-row">
-                  <span className="stage-meta-item">
-                    <Clock size={16} color="var(--accent-cyan)" />
-                    <span>{formatPlaytime(selectedGame.total_playtime_seconds)}</span>
-                  </span>
-
-                  {selectedGame.last_played_at && (
-                    <span className="stage-meta-item">
-                      Última vez: {new Date(selectedGame.last_played_at).toLocaleDateString("pt-BR")}
-                    </span>
-                  )}
-
-                  {selectedGame.is_running && (
-                    <div className="running-badge" style={{ fontSize: "0.75rem" }}>
-                      <span className="running-dot" />
-                      <span>RODANDO AGORA</span>
                     </div>
-                  )}
 
-                  {selectedGame.is_emulator && (
-                    <span className="stage-meta-item" style={{ color: "#FFB84D" }}>
-                      <Trophy size={16} color="#FF9900" />
-                      <span>RetroAchievements Disponível</span>
-                    </span>
-                  )}
-
-                  {selectedGame.play_status && selectedGame.play_status !== "backlog" && (
-                    <span
-                      className="stage-meta-item"
-                      style={{
-                        background:
-                          selectedGame.play_status === "completed"
-                            ? "rgba(76, 175, 80, 0.2)"
-                            : selectedGame.play_status === "playing"
-                            ? "rgba(0, 229, 255, 0.2)"
-                            : "rgba(255, 152, 0, 0.2)",
-                        color:
-                          selectedGame.play_status === "completed"
-                            ? "#81C784"
-                            : selectedGame.play_status === "playing"
-                            ? "#00E5FF"
-                            : "#FFB74D",
-                        padding: "4px 10px",
-                        borderRadius: "999px",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      }}
-                    >
-                      {selectedGame.play_status === "completed"
-                        ? "ZERADO"
-                        : selectedGame.play_status === "playing"
-                        ? "JOGANDO"
-                        : "PAUSADO"}
-                    </span>
-                  )}
-                </div>
-
-                {selectedGame.notes && (
-                  <div className="stage-game-notes-box">
-                    <div className="stage-notes-icon-bar">
-                      <Sparkles size={14} color="var(--accent-cyan)" />
-                      <span className="stage-notes-label">CONFIGURAÇÕES DE SISTEMA</span>
-                    </div>
-                    <div className="stage-notes-chips">
-                      {selectedGame.notes.split(/[/|,]/).map((chip, idx) => {
-                        const trimmed = chip.trim();
-                        if (!trimmed) return null;
-                        return (
-                          <span key={idx} className="stage-notes-chip">
-                            {trimmed}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* BIG ACTION BUTTONS */}
-                <div className="stage-actions-row">
-                  {selectedGame.is_running ? (
-                    <button
-                      className="btn-stop-big"
-                      onClick={() => onStopGame(selectedGame)}
-                      style={{ padding: "16px 36px", fontSize: "1.1rem" }}
-                    >
-                      <Square size={20} fill="currentColor" />
-                      <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
-                      <span>ENCERRAR JOGO</span>
-                    </button>
-                  ) : (
-                    <button
-                      className="btn-launch-big"
-                      onClick={() => onLaunchGame(selectedGame)}
-                      style={{ padding: "16px 42px", fontSize: "1.15rem" }}
-                    >
-                      <Play size={22} fill="currentColor" />
-                      <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
-                      <span>JOGAR AGORA</span>
-                    </button>
-                  )}
-
-                  {onOpenGameDetails && (
-                    <button
-                      className="btn-secondary bp-action-btn"
-                      onClick={() => {
-                        playSound("select");
-                        onOpenGameDetails(selectedGame);
-                      }}
-                      style={{ padding: "16px 24px", fontSize: "1rem" }}
-                      title="Histórico de Sessões, Editar Dados, Trocar Capas via IGDB e Excluir"
-                    >
-                      <ControllerPromptBadge controllerType={controllerType} action="details" size={18} />
-                      <span>Detalhes & Gerenciar</span>
-                    </button>
-                  )}
-
-                  {Boolean(selectedGame.is_emulator) && (
-                    <button
-                      className="btn-secondary bp-action-btn"
-                      onClick={() => {
-                        playSound("select");
-                        setAchievementsTargetGame(selectedGame);
-                        setActiveTab("achievements");
-                      }}
-                      style={{ padding: "16px 20px", fontSize: "1rem" }}
-                      title="Ver Conquistas deste jogo no RetroAchievements"
-                    >
-                      <Trophy size={17} color="#FF9900" />
-                      <span>Conquistas</span>
-                    </button>
-                  )}
-
-                  {onToggleFavorite && (
-                    <button
-                      className={`btn-secondary bp-action-btn ${selectedGame.is_favorite ? "is-fav" : ""}`}
-                      onClick={() => onToggleFavorite(selectedGame)}
-                      style={{
-                        padding: "16px 22px",
-                        fontSize: "1rem",
-                        color: selectedGame.is_favorite ? "#FFB84D" : "inherit",
-                        borderColor: selectedGame.is_favorite ? "#FFB84D" : undefined,
-                      }}
-                    >
-                      <ControllerPromptBadge controllerType={controllerType} action="favorite" size={18} />
-                      <Star size={17} fill={selectedGame.is_favorite ? "#FFB84D" : "none"} color={selectedGame.is_favorite ? "#FFB84D" : "currentColor"} />
-                      <span>
-                        {selectedGame.is_favorite ? "Favoritado" : "Favoritar"}
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="stage-empty">
-                <Gamepad2 size={64} color="var(--text-muted)" />
-                <h2>Nenhum jogo encontrado nesta categoria</h2>
-                {searchQuery && (
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setSearchQuery("")}
-                    style={{ marginTop: "12px" }}
-                  >
-                    Limpar Busca
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* BOTTOM HORIZONTAL POSTER CAROUSEL */}
-            <div className="big-picture-shelf">
-              <div className="carousel-track" ref={carouselRef}>
-                {filteredGames.map((game, idx) => {
-                  const isSelected = idx === selectedIndex;
-                  const gColor = game.platform_brand_color || "#00E5FF";
-
-                  return (
-                    <div
-                      key={game.id}
-                      className={`shelf-card ${
-                        isSelected ? (focusZone === "shelf" ? "focused" : "idle-selected") : ""
-                      }`}
-                      onClick={() => {
-                        playSound("move");
-                        setSelectedIndex(idx);
-                      }}
-                      onDoubleClick={() => {
-                        playSound("select");
-                        onLaunchGame(game);
-                      }}
-                      style={{
-                        borderColor: isSelected ? gColor : undefined,
-                        boxShadow: isSelected
-                          ? `0 0 0 2px ${gColor}, 0 0 25px ${gColor}99, 0 0 45px var(--accent-cyan-glow)`
-                          : undefined,
-                      }}
-                    >
-                      {game.cover_url ? (
-                        <img
-                          src={formatImageUrl(game.cover_url)}
-                          alt={game.title}
-                          className="shelf-card-img"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="shelf-card-fallback">
-                          <Gamepad2 size={36} color={gColor} />
-                          <span className="fallback-title">{game.title}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      {game.is_favorite && (
+                        <div className="bp-card-mini-badge bp-badge-fav" title="Favorito">
+                          <Star size={11} fill="currentColor" />
                         </div>
                       )}
-
-                      {/* TOP BAR: Clean Running Status & Favorite Star (No overlapping badges) */}
-                      <div className="shelf-card-top-bar">
-                        {game.is_running ? (
-                          <div className="shelf-card-running-pill" title="Em execução">
-                            <span className="running-dot" />
-                            <span>JOGANDO</span>
-                          </div>
-                        ) : (
-                          <span />
-                        )}
-
-                        {game.is_favorite && (
-                          <div className="shelf-card-fav-pill" title="Favorito">
-                            <Star size={13} fill="#FFB84D" color="#FFB84D" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="shelf-card-badge" style={{ color: gColor, display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                        <ConsoleIcon platformId={game.original_platform_id} name={game.platform_name} size={13} color={gColor} />
-                        <span>{game.platform_name || game.original_platform_id.toUpperCase()}</span>
-                      </div>
+                      {game.play_status === "completed" && (
+                        <div className="bp-card-mini-badge bp-badge-completed" title="Zerado">
+                          <CheckCircle2 size={11} />
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                  </div>
 
-            {/* NINTENDO SWITCH SIGNATURE UTILITY BAR */}
-            {currentBpTheme === "nintendo" && (
-              <div className="switch-utility-bar">
-                <button
-                  type="button"
-                  className="switch-util-btn"
-                  title="Buscar Jogos na Biblioteca"
-                  onClick={() => {
-                    playThemeSound("select");
-                    setIsSearchOpen(true);
-                  }}
-                >
-                  <Search size={20} />
-                  <span className="switch-util-tooltip">Buscar</span>
-                </button>
-                <button
-                  type="button"
-                  className="switch-util-btn"
-                  title="Álbum & Gravações (Replay)"
-                  onClick={() => {
-                    playThemeSound("select");
-                    setActiveTab("replay");
-                  }}
-                >
-                  <Sparkles size={20} />
-                  <span className="switch-util-tooltip">Replay</span>
-                </button>
-                <button
-                  type="button"
-                  className="switch-util-btn"
-                  title="Conquistas (RetroAchievements)"
-                  onClick={() => {
-                    playThemeSound("select");
-                    setActiveTab("achievements");
-                  }}
-                >
-                  <Trophy size={20} />
-                  <span className="switch-util-tooltip">Conquistas</span>
-                </button>
-                <button
-                  type="button"
-                  className="switch-util-btn"
-                  title="Alterar Estilo de Dashboard"
-                  onClick={() => {
-                    playThemeSound("select");
-                    const bpThemes: BigPictureTheme[] = ["steam", "xbox", "playstation", "nintendo"];
-                    const currentIdx = bpThemes.indexOf(currentBpTheme);
-                    setThemeModalFocusIndex(currentIdx !== -1 ? currentIdx : 0);
-                    setIsThemeModalOpen(true);
-                  }}
-                >
-                  <ConsoleIcon iconName="switch" size={20} />
-                  <span className="switch-util-tooltip">Temas</span>
-                </button>
-                <button
-                  type="button"
-                  className="switch-util-btn switch-util-power"
-                  title="Sair do Modo Big Picture"
-                  onClick={() => {
-                    playThemeSound("back");
-                    onExitBigPicture();
-                  }}
-                >
-                  <X size={20} />
-                  <span className="switch-util-tooltip">Sair</span>
-                </button>
-              </div>
-            )}
-          </main>
-        </>
-      ) : (
-        /* EMBEDDED CONSOLE VIEWS (REPLAY & RETROACHIEVEMENTS) */
-        <div className="big-picture-content-view">
-          {activeTab === "replay" && (
-            <div className="big-picture-scroll-container">
-              <ReplayView
-                onBackToLibrary={() => setActiveTab("library")}
-                games={games}
-                platforms={platforms}
-              />
-            </div>
-          )}
+                  {/* Running Status Tag */}
+                  {game.is_running && (
+                    <div className="bp-card-running-pill">
+                      <span className="bp-running-dot" />
+                      <span>EM EXECUÇÃO</span>
+                    </div>
+                  )}
 
-          {activeTab === "achievements" && (
-            <div className="big-picture-scroll-container">
-              <RetroAchievementsView
-                games={games}
-                initialGame={achievementsTargetGame || selectedGame}
-                raUsername={raUsername}
-                raApiKey={raApiKey}
-                onBackToLibrary={() => setActiveTab("library")}
-                onOpenSettings={onOpenSettings}
-              />
-            </div>
-          )}
+                  {/* Bottom Title & Meta Scrim Footer */}
+                  <div className="bp-card-footer">
+                    <span className="bp-card-title">{game.title}</span>
+                    <div className="bp-card-submeta">
+                      <span className="bp-card-platform-name">{game.platform_name || game.original_platform_id.toUpperCase()}</span>
+                      {game.total_playtime_seconds > 0 && (
+                        <span className="bp-card-playtime">
+                          {formatPlaytime(game.total_playtime_seconds)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      )}
+      </main>
 
-      {/* GAMEPAD / KEYBOARD HINTS FOOTER */}
-      <footer className="big-picture-footer">
-        {focusZone === "header" ? (
-          <>
-            <div className="gamepad-hint-item">
-              <span className="hint-btn">← →</span>
-              <span>Navegar Ações</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
-              <span className="hint-btn">Enter</span>
-              <span>Confirmar</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
-              <span className="hint-btn">↓</span>
-              <span>Voltar aos Jogos</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span style={{ display: "inline-flex", gap: "4px" }}>
-                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
-                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
-              </span>
-              <span>Mudar Aba</span>
-            </div>
-          </>
-        ) : focusZone === "filters" ? (
-          <>
-            <div className="gamepad-hint-item">
-              <span className="hint-btn">← →</span>
-              <span>Navegar Filtros</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
-              <span className="hint-btn">Enter</span>
-              <span>Aplicar Filtro</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span className="hint-btn">↑</span>
-              <span>Menu Superior</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
-              <span className="hint-btn">↓</span>
-              <span>Voltar aos Jogos</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span style={{ display: "inline-flex", gap: "4px" }}>
-                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
-                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
-              </span>
-              <span>Mudar Aba</span>
-            </div>
-          </>
-        ) : activeTab === "library" ? (
-          <>
-            <div className="gamepad-hint-item">
-              <span style={{ display: "inline-flex", gap: "4px" }}>
-                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
-                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
-              </span>
-              <span>Mudar Aba</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span className="hint-btn">↑</span>
-              <span>Menu / Filtros</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
-              <span>Iniciar</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="details" size={20} />
-              <span className="hint-btn">X</span>
-              <span>Detalhes & Gerenciar</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="favorite" size={20} />
-              <span className="hint-btn">F</span>
-              <span>Favorito</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span style={{ display: "inline-flex", gap: "4px" }}>
-                <ControllerPromptBadge controllerType={controllerType} action="bumperL" size={20} />
-                <ControllerPromptBadge controllerType={controllerType} action="bumperR" size={20} />
-              </span>
-              <span>Mudar Console</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
-              <span className="hint-btn">ESC</span>
-              <span>Sair</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="gamepad-hint-item">
-              <span style={{ display: "inline-flex", gap: "4px" }}>
-                <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
-                <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
-              </span>
-              <span>Mudar Aba</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <span className="hint-btn">↑</span>
-              <span>Menu Superior</span>
-            </div>
-            <div className="gamepad-hint-item">
-              <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
-              <span className="hint-btn">ESC</span>
-              <span>Voltar para a Biblioteca</span>
-            </div>
-          </>
-        )}
+      {/* 6 · CONTROLLER PROMPTS FOOTER */}
+      <footer className="bp-footer">
+        <div className="bp-hint-item">
+          <ControllerPromptBadge controllerType={controllerType} action="select" size={20} />
+          <span>Jogar / Selecionar</span>
+        </div>
+
+        <div className="bp-hint-item">
+          <ControllerPromptBadge controllerType={controllerType} action="back" size={20} />
+          <span>Voltar / Sair</span>
+        </div>
+
+        <div className="bp-hint-item">
+          <ControllerPromptBadge controllerType={controllerType} action="favorite" size={20} />
+          <span>Favoritar</span>
+        </div>
+
+        <div className="bp-hint-item">
+          <ControllerPromptBadge controllerType={controllerType} action="details" size={20} />
+          <span>Detalhes</span>
+        </div>
+
+        <div className="bp-hint-item">
+          <span style={{ display: "inline-flex", gap: "4px" }}>
+            <ControllerPromptBadge controllerType={controllerType} action="triggerL" size={20} />
+            <ControllerPromptBadge controllerType={controllerType} action="triggerR" size={20} />
+          </span>
+          <span>Filtro de Console</span>
+        </div>
+
+        <div className="bp-hint-item">
+          <span style={{ fontSize: "0.75rem", background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px" }}>
+            START / MENU
+          </span>
+          <span>Trocar Tema</span>
+        </div>
       </footer>
-
-      {/* BIG PICTURE CONSOLE DASHBOARD THEME SELECTION MODAL */}
-      {isThemeModalOpen && (
-        <div
-          className="bp-theme-modal-backdrop"
-          onClick={() => {
-            playThemeSound("back");
-            setIsThemeModalOpen(false);
-          }}
-        >
-          <div
-            className="bp-theme-modal-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="bp-theme-modal-header">
-              <div className="bp-theme-modal-title-row">
-                <div
-                  className="bp-theme-modal-icon-badge"
-                  style={{
-                    background: activeBpTheme.accentColor,
-                    boxShadow: `0 0 20px ${activeBpTheme.accentColor}55`,
-                  }}
-                >
-                  <ConsoleIcon iconName={activeBpTheme.icon} size={22} color="#060910" />
-                </div>
-                <div>
-                  <h2 className="bp-theme-modal-title">ESTILO DE DASHBOARD</h2>
-                  <p className="bp-theme-modal-subtitle">
-                    Personalize o layout dos cartões, atmosfera visual e perfil sonoro como seus consoles favoritos
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="bp-theme-modal-close"
-                onClick={() => {
-                  playThemeSound("back");
-                  setIsThemeModalOpen(false);
-                }}
-                title="Fechar"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="bp-theme-options-grid">
-              {(Object.keys(BP_THEMES_METADATA) as BigPictureTheme[]).map((themeKey, idx) => {
-                const meta = BP_THEMES_METADATA[themeKey];
-                const isSelected = currentBpTheme === themeKey;
-                const isFocused = themeModalFocusIndex === idx;
-
-                return (
-                  <div
-                    key={themeKey}
-                    className={`bp-theme-choice-card ${isSelected ? "selected" : ""} ${
-                      isFocused ? "focused" : ""
-                    }`}
-                    style={
-                      {
-                        "--theme-accent": meta.accentColor,
-                      } as React.CSSProperties
-                    }
-                    onClick={() => {
-                      playSound("select", themeKey);
-                      setCurrentBpTheme(themeKey);
-                      setThemeModalFocusIndex(idx);
-                      if (onUpdateBigPictureTheme) onUpdateBigPictureTheme(themeKey);
-                      setIsThemeModalOpen(false);
-                    }}
-                    onMouseEnter={() => {
-                      playThemeSound("move");
-                      setThemeModalFocusIndex(idx);
-                    }}
-                  >
-                    <div className="bp-theme-choice-top">
-                      <div className="bp-theme-choice-brand-badge" style={{ color: meta.accentColor }}>
-                        <ConsoleIcon iconName={meta.icon} size={14} color={meta.accentColor} />
-                        <span>{meta.brand}</span>
-                      </div>
-                      {isSelected && (
-                        <div className="bp-theme-active-tag" style={{ background: meta.accentColor, color: "#060910" }}>
-                          ATIVO
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="bp-theme-choice-visual-preview">
-                      <div className={`bp-preview-box preview-${themeKey}`}>
-                        <div className="bp-preview-mini-banner" />
-                        <div className="bp-preview-mini-cards">
-                          <div className="bp-mini-card mini-card-1" />
-                          <div className="bp-mini-card mini-card-2 active" style={{ borderColor: meta.accentColor }} />
-                          <div className="bp-mini-card mini-card-3" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bp-theme-choice-body">
-                      <h3 className="bp-theme-choice-name">{meta.name}</h3>
-                      <p className="bp-theme-choice-desc">{meta.desc}</p>
-                    </div>
-
-                    <div className="bp-theme-choice-action-bar">
-                      <span className="bp-theme-action-text" style={{ color: meta.accentColor }}>
-                        {isSelected ? "Dashboard em uso" : "Pressione para aplicar"}
-                      </span>
-                      <ControllerPromptBadge controllerType={controllerType} action="select" size={16} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="bp-theme-modal-footer">
-              <div className="gamepad-hint-item">
-                <span className="hint-btn">← →</span>
-                <span>Navegar</span>
-              </div>
-              <div className="gamepad-hint-item">
-                <ControllerPromptBadge controllerType={controllerType} action="select" size={18} />
-                <span className="hint-btn">Enter</span>
-                <span>Selecionar Estilo</span>
-              </div>
-              <div className="gamepad-hint-item">
-                <ControllerPromptBadge controllerType={controllerType} action="back" size={18} />
-                <span className="hint-btn">ESC</span>
-                <span>Fechar</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

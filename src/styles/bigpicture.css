@@ -1,0 +1,512 @@
+/* ==========================================================================
+   BIG PICTURE MODE V2 (Gamepad-first Modern Console UX)
+   ========================================================================== */
+
+.bp-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  background: #06090e;
+  color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font-main);
+}
+
+/* Ambient artwork backdrop with smooth blur */
+.bp-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bp-backdrop-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(36px) brightness(0.28) saturate(1.5);
+  transform: scale(1.15);
+  transition: all 0.6s var(--ease-out);
+}
+.bp-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(6, 9, 14, 0.4) 0%, rgba(6, 9, 14, 0.85) 75%, #06090e 100%);
+}
+
+/* Top Console HUD */
+.bp-hud {
+  position: relative;
+  z-index: 10;
+  height: 68px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 18, 0.6);
+  backdrop-filter: blur(16px);
+}
+.bp-hud-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bp-hud-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--gradient-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #06090e;
+  box-shadow: 0 0 16px var(--color-accent-glow);
+}
+.bp-hud-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Console Dashboard Theme Selector Pill */
+.bp-dashboard-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.bp-dashboard-badge.focused,
+.bp-dashboard-badge:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 16px var(--color-accent-glow);
+  transform: scale(1.05);
+}
+
+.bp-hud-status {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+.bp-gamepad-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bp-clock {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+/* Platform Filter Carousel / Pills */
+.bp-filter-bar {
+  position: relative;
+  z-index: 10;
+  padding: 16px 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+}
+.bp-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s var(--ease-out);
+  flex-shrink: 0;
+}
+.bp-filter-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.bp-filter-pill.active {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 12px var(--color-accent-glow);
+}
+.bp-filter-pill.focused {
+  outline: none;
+  transform: scale(1.08);
+  border-color: #fff;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.4), 0 0 24px var(--color-accent-glow);
+  background: var(--color-surface-3);
+  color: #fff;
+}
+
+/* Center Stage: Hero Showcase of currently focused game */
+.bp-stage {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  padding: 10px 40px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.bp-stage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 900px;
+  margin-bottom: 24px;
+}
+.bp-stage-chips {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bp-stage-title {
+  font-size: 3.2rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  color: #ffffff;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+}
+.bp-stage-meta {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+.bp-stage-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+/* Big Action Launch Button (Game Controller Focused) */
+.bp-btn-play {
+  height: 54px;
+  padding: 0 32px;
+  border-radius: var(--radius-md);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, var(--color-success) 0%, #00b0ff 100%);
+  color: #04140b;
+  box-shadow: 0 4px 24px rgba(0, 230, 118, 0.4);
+  transition: all 0.2s var(--ease-out);
+  cursor: pointer;
+}
+.bp-btn-play.focused,
+.bp-btn-play:hover {
+  transform: scale(1.06);
+  filter: brightness(1.15);
+  box-shadow: 0 6px 36px rgba(0, 230, 118, 0.65);
+}
+
+.bp-btn-stop {
+  height: 54px;
+  padding: 0 32px;
+  border-radius: var(--radius-md);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, var(--color-danger) 0%, #d32f2f 100%);
+  color: #fff;
+  box-shadow: 0 4px 24px rgba(255, 51, 75, 0.4);
+  animation: pulse-glow 2s infinite;
+  cursor: pointer;
+}
+
+.bp-btn-action {
+  height: 54px;
+  padding: 0 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.bp-btn-action.focused,
+.bp-btn-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: #fff;
+  transform: scale(1.05);
+}
+
+/* Horizontal Poster Carousel Shelf */
+.bp-shelf {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  overflow: visible;
+}
+.bp-shelf-track {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  padding: 34px 48px 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+.bp-card {
+  position: relative;
+  flex: 0 0 190px;
+  height: 275px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0d131f;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s ease,
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.bp-card-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.bp-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+}
+
+/* Glass shine on top half */
+.bp-card-sheen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.0) 100%);
+  pointer-events: none;
+}
+
+/* Fallback cover styling */
+.bp-card-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 35%, #182438 0%, #080c14 100%);
+}
+.bp-card-fallback-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.3;
+}
+
+/* Top Badge Bar */
+.bp-card-topbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.bp-card-platform-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.bp-card-mini-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.bp-badge-fav {
+  background: rgba(255, 184, 0, 0.85);
+  color: #211500;
+}
+.bp-badge-completed {
+  background: rgba(0, 230, 118, 0.85);
+  color: #041a0e;
+}
+
+/* Running indicator pill */
+.bp-card-running-pill {
+  position: absolute;
+  top: 42px;
+  right: 8px;
+  z-index: 3;
+  background: rgba(0, 230, 118, 0.95);
+  color: #04140b;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 10px rgba(0, 230, 118, 0.5);
+  animation: pulse-glow 2s infinite;
+}
+.bp-running-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #04140b;
+}
+
+/* Bottom Title Scrim Footer */
+.bp-card-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 12px 10px;
+  background: linear-gradient(180deg, rgba(7, 10, 16, 0) 0%, rgba(7, 10, 16, 0.72) 35%, rgba(7, 10, 16, 0.96) 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 2;
+  pointer-events: none;
+  transition: padding 0.25s ease;
+}
+
+.bp-card-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  line-height: 1.25;
+}
+
+.bp-card-submeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+.bp-card-platform-name {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+.bp-card-playtime {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+/* Focused card zoom (Signature console feel) */
+.bp-card.focused {
+  transform: translateY(-22px) scale(1.15);
+  border-color: #ffffff;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.95),
+              0 0 32px var(--card-accent, var(--color-accent)),
+              0 0 0 3.5px var(--card-accent, var(--color-accent));
+  z-index: 15;
+}
+.bp-card.focused .bp-card-media img {
+  transform: scale(1.06);
+}
+.bp-card.focused .bp-card-footer {
+  padding-bottom: 12px;
+  background: linear-gradient(180deg, rgba(7, 10, 16, 0) 0%, rgba(7, 10, 16, 0.82) 30%, rgba(7, 10, 16, 0.98) 100%);
+}
+.bp-card.focused .bp-card-title {
+  color: #fff;
+  font-weight: 800;
+}
+
+/* Bottom Gamepad Button Prompts Bar */
+.bp-footer {
+  position: relative;
+  z-index: 10;
+  height: 52px;
+  background: rgba(6, 9, 14, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.bp-hint-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

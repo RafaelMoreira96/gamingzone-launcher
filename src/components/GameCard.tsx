@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Play, Square, Clock, Gamepad2, Cpu, Star, Trophy, Pencil } from "lucide-react";
 import { Game, CardBadgePreference } from "../types";
-import { formatPlaytime, formatImageUrl } from "../services/api";
+import { formatImageUrl } from "../services/api";
 import { ConsoleIcon } from "./ConsoleIcon";
 
 interface GameCardProps {
@@ -216,7 +216,13 @@ export const GameCard: React.FC<GameCardProps> = ({
         <div className="game-card-meta">
           <span className="playtime-tag" title="Tempo total jogado">
             <Clock size={12} />
-            <span>{formatPlaytime(game.total_playtime_seconds)}</span>
+            <span>
+              {game.total_playtime_seconds > 0
+                ? `${Math.floor(game.total_playtime_seconds / 3600)}h ${Math.floor(
+                    (game.total_playtime_seconds % 3600) / 60
+                  )}m`
+                : "Não jogado"}
+            </span>
           </span>
           {game.last_played_at && (
             <span className="last-played-tag" title="Última vez jogado">
